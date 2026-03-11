@@ -37,6 +37,7 @@ const [binResult,setBinResult] = useState<any>(null)
 const [credits,setCredits] = useState(0)
 
 const [rechargeAmount,setRechargeAmount] = useState("")
+const [showPlans,setShowPlans] = useState(false)
 
 /* AUTO CREDIT SYNC */
 
@@ -91,21 +92,6 @@ setRechargeAmount("")
 
 function logout(){
 router.push("/login")
-}
-
-function getCardLogo(type:string){
-
-if(type === "Visa")
-return "https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg"
-
-if(type === "Mastercard")
-return "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg"
-
-if(type === "American Express")
-return "https://upload.wikimedia.org/wikipedia/commons/3/30/American_Express_logo.svg"
-
-return null
-
 }
 
 function formatExpiry(value:string){
@@ -172,6 +158,14 @@ Fintech Panel
 <li className="hover:text-blue-400 cursor-pointer">Card Checker</li>
 <li className="hover:text-blue-400 cursor-pointer">BIN Validator</li>
 <li className="hover:text-blue-400 cursor-pointer">Countries</li>
+
+<li
+onClick={()=>setShowPlans(true)}
+className="hover:text-yellow-400 cursor-pointer"
+>
+Plans / Tariffs
+</li>
+
 </ul>
 
 {/* RECHARGE */}
@@ -324,6 +318,44 @@ Check BIN
 </div>
 
 </div>
+
+{/* PLANS POPUP */}
+
+{showPlans && (
+
+<div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+
+<div className="bg-gray-800 p-8 rounded-lg w-[420px]">
+
+<h2 className="text-xl font-bold mb-6 text-center">
+Credit Tariffs
+</h2>
+
+<div className="space-y-2 text-center text-gray-200">
+
+<p>1 Credit = $1</p>
+<p>100 Credits = $25</p>
+<p>250 Credits = $50</p>
+<p>500 Credits = $100</p>
+<p>1000 Credits = $200</p>
+<p>5000 Credits = $500</p>
+<p>10000 Credits = $1000</p>
+<p>50000 Credits = $5000</p>
+
+</div>
+
+<button
+onClick={()=>setShowPlans(false)}
+className="mt-6 w-full bg-red-600 hover:bg-red-700 p-3 rounded font-semibold"
+>
+Close
+</button>
+
+</div>
+
+</div>
+
+)}
 
 </div>
 
