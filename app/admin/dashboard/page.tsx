@@ -7,6 +7,8 @@ export default function AdminDashboard(){
 
 const router = useRouter()
 
+const [page,setPage] = useState("dashboard")
+
 const [users,setUsers] = useState<any[]>([])
 const [transactions,setTransactions] = useState<any[]>([])
 const [requests,setRequests] = useState<any[]>([])
@@ -119,67 +121,6 @@ saveUsers(updated)
 
 }
 
-/* APPROVE RECHARGE REQUEST */
-
-function approveRequest(req:any){
-
-const updatedUsers = users.map((u)=>{
-
-if(u.username === req.username){
-
-return {
-...u,
-credits:(u.credits || 0) + Number(req.amount)
-}
-
-}
-
-return u
-
-})
-
-setUsers(updatedUsers)
-localStorage.setItem("users",JSON.stringify(updatedUsers))
-
-const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}")
-
-if(currentUser.username === req.username){
-
-currentUser.credits = (currentUser.credits || 0) + Number(req.amount)
-
-localStorage.setItem("currentUser",JSON.stringify(currentUser))
-
-}
-
-const updatedRequests = requests.map((r)=>{
-
-if(r.id === req.id){
-return {...r,status:"approved"}
-}
-
-return r
-
-})
-
-setRequests(updatedRequests)
-localStorage.setItem("rechargeRequests",JSON.stringify(updatedRequests))
-
-const newTx = {
-id: Date.now(),
-username:req.username,
-type:"credit",
-amount:req.amount,
-description:"Recharge Approved",
-date:new Date().toLocaleString()
-}
-
-const tx = [newTx,...transactions]
-
-setTransactions(tx)
-localStorage.setItem("transactions",JSON.stringify(tx))
-
-}
-
 /* LOGOUT */
 
 function logout(){
@@ -197,6 +138,8 @@ return(
 
 <div className="flex min-h-screen bg-gray-900 text-white">
 
+{/* SIDEBAR */}
+
 <div className="w-64 bg-gray-800 p-6 flex flex-col justify-between">
 
 <div>
@@ -207,16 +150,25 @@ Admin Panel
 
 <ul className="space-y-4">
 
-<li className="hover:text-blue-400 cursor-pointer">
+<li
+onClick={()=>setPage("dashboard")}
+className="hover:text-blue-400 cursor-pointer"
+>
 Dashboard
 </li>
 
-<li className="hover:text-blue-400 cursor-pointer">
+<li
+onClick={()=>setPage("users")}
+className="hover:text-blue-400 cursor-pointer"
+>
 Users
 </li>
 
-<li className="hover:text-blue-400 cursor-pointer">
-Analytics
+<li
+onClick={()=>setPage("wallet")}
+className="hover:text-blue-400 cursor-pointer"
+>
+Wallet Connected
 </li>
 
 </ul>
@@ -226,19 +178,26 @@ Analytics
 <button
 onClick={logout}
 className="bg-red-600 p-3 rounded font-semibold"
+
 >
-Logout
-</button>
+
+Logout </button>
 
 </div>
 
+{/* MAIN CONTENT */}
+
 <div className="flex-1 p-10">
+
+{/* DASHBOARD */}
+
+{page === "dashboard" && (
+
+<div>
 
 <h1 className="text-3xl font-bold mb-8">
 Admin Dashboard
 </h1>
-
-{/* ANALYTICS */}
 
 <div className="grid grid-cols-3 gap-6 mb-10">
 
@@ -261,7 +220,17 @@ Admin Dashboard
 
 </div>
 
-{/* CREATE USER */}
+</div>
+
+)}
+
+{/* USER MANAGEMENT */}
+
+{page === "users" && (
+
+<div>
+
+<h2 className="text-2xl font-bold mb-6">User Management</h2>
 
 <div className="bg-gray-800 p-6 rounded-lg w-96 mb-10">
 
@@ -287,6 +256,7 @@ onChange={(e)=>setPassword(e.target.value)}
 value={role}
 className="w-full p-3 mb-4 bg-gray-700 rounded"
 onChange={(e)=>setRole(e.target.value)}
+
 >
 
 <option value="user">User</option>
@@ -297,19 +267,18 @@ onChange={(e)=>setRole(e.target.value)}
 <button
 onClick={createUser}
 className="w-full bg-blue-600 p-3 rounded"
+
 >
-Create User
-</button>
+
+Create User </button>
 
 </div>
 
-{/* USER MANAGEMENT */}
-
-<div className="bg-gray-800 p-6 rounded-lg mb-10">
+<div className="bg-gray-800 p-6 rounded-lg">
 
 <div className="flex justify-between mb-4">
 
-<h2 className="text-lg font-semibold">User Management</h2>
+<h2 className="text-lg font-semibold">Users</h2>
 
 <input
 placeholder="Search user..."
@@ -341,9 +310,7 @@ onChange={(e)=>setSearch(e.target.value)}
 
 <td className="p-2">{u.username}</td>
 
-<td className="p-2 text-red-400">
-{u.password}
-</td>
+<td className="p-2 text-red-400">{u.password}</td>
 
 <td className="p-2">
 <span className={u.role==="admin" ? "text-yellow-400" : "text-blue-400"}>
@@ -358,16 +325,18 @@ onChange={(e)=>setSearch(e.target.value)}
 <button
 onClick={()=>rechargeUser(u.id)}
 className="bg-green-600 px-3 py-1 rounded"
+
 >
-Recharge
-</button>
+
+Recharge </button>
 
 <button
 onClick={()=>deleteUser(u.id)}
 className="bg-red-600 px-3 py-1 rounded"
+
 >
-Delete
-</button>
+
+Delete </button>
 
 </td>
 
@@ -380,6 +349,37 @@ Delete
 </table>
 
 </div>
+
+</div>
+
+)}
+
+{/* WALLET QR PAGE */}
+
+{page === "wallet" && (
+
+<div className="bg-gray-800 p-8 rounded-lg w-[420px]">
+
+<h2 className="text-xl font-bold mb-4">
+Wallet Connected
+</h2>
+
+<p className="text-gray-400 mb-4">
+Scan this QR code to receive payments
+</p>
+
+<img
+src="/wallet-qr.png"
+className="w-72 mx-auto rounded"
+/>
+
+<p className="text-center text-gray-400 mt-4">
+TRC20 USDT Wallet
+</p>
+
+</div>
+
+)}
 
 </div>
 
