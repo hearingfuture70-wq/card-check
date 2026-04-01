@@ -19,6 +19,9 @@ const [role,setRole] = useState("user")
 const [search,setSearch] = useState("")
 const [totalCardsChecked,setTotalCardsChecked] = useState(0)
 
+/* NEW STATE */
+const [backupProxy,setBackupProxy] = useState("")
+
 useEffect(()=>{
 
 const auth = localStorage.getItem("adminAuth")
@@ -31,6 +34,7 @@ const savedUsers = localStorage.getItem("users")
 const cardStats = localStorage.getItem("cardsChecked")
 const savedTransactions = localStorage.getItem("transactions")
 const savedRequests = localStorage.getItem("rechargeRequests")
+const savedProxy = localStorage.getItem("backupProxy")
 
 if(savedUsers){
 setUsers(JSON.parse(savedUsers))
@@ -46,6 +50,10 @@ setTransactions(JSON.parse(savedTransactions))
 
 if(savedRequests){
 setRequests(JSON.parse(savedRequests))
+}
+
+if(savedProxy){
+setBackupProxy(savedProxy)
 }
 
 },[])
@@ -121,6 +129,20 @@ saveUsers(updated)
 
 }
 
+/* SAVE BACKUP PROXY */
+
+function saveBackupProxy(){
+
+if(!backupProxy){
+alert("Enter proxy URL")
+return
+}
+
+localStorage.setItem("backupProxy",backupProxy)
+alert("Backup proxy saved")
+
+}
+
 /* LOGOUT */
 
 function logout(){
@@ -171,6 +193,14 @@ className="hover:text-blue-400 cursor-pointer"
 Wallet Connected
 </li>
 
+{/* NEW TAB */}
+<li
+onClick={()=>setPage("backup")}
+className="hover:text-blue-400 cursor-pointer"
+>
+Backup API Proxy
+</li>
+
 </ul>
 
 </div>
@@ -178,10 +208,9 @@ Wallet Connected
 <button
 onClick={logout}
 className="bg-red-600 p-3 rounded font-semibold"
-
 >
-
-Logout </button>
+Logout
+</button>
 
 </div>
 
@@ -256,21 +285,17 @@ onChange={(e)=>setPassword(e.target.value)}
 value={role}
 className="w-full p-3 mb-4 bg-gray-700 rounded"
 onChange={(e)=>setRole(e.target.value)}
-
 >
-
 <option value="user">User</option>
 <option value="admin">Admin</option>
-
 </select>
 
 <button
 onClick={createUser}
 className="w-full bg-blue-600 p-3 rounded"
-
 >
-
-Create User </button>
+Create User
+</button>
 
 </div>
 
@@ -291,7 +316,6 @@ onChange={(e)=>setSearch(e.target.value)}
 <table className="w-full text-left">
 
 <thead className="border-b border-gray-700">
-
 <tr>
 <th className="p-2">Username</th>
 <th className="p-2">Password</th>
@@ -299,7 +323,6 @@ onChange={(e)=>setSearch(e.target.value)}
 <th className="p-2">Credits</th>
 <th className="p-2">Action</th>
 </tr>
-
 </thead>
 
 <tbody>
@@ -325,18 +348,16 @@ onChange={(e)=>setSearch(e.target.value)}
 <button
 onClick={()=>rechargeUser(u.id)}
 className="bg-green-600 px-3 py-1 rounded"
-
 >
-
-Recharge </button>
+Recharge
+</button>
 
 <button
 onClick={()=>deleteUser(u.id)}
 className="bg-red-600 px-3 py-1 rounded"
-
 >
-
-Delete </button>
+Delete
+</button>
 
 </td>
 
@@ -354,7 +375,7 @@ Delete </button>
 
 )}
 
-{/* WALLET QR PAGE */}
+{/* WALLET */}
 
 {page === "wallet" && (
 
@@ -376,6 +397,44 @@ className="w-72 mx-auto rounded"
 <p className="text-center text-gray-400 mt-4">
 TRC20 USDT Wallet
 </p>
+
+</div>
+
+)}
+
+{/* BACKUP API PROXY */}
+
+{page === "backup" && (
+
+<div className="bg-gray-800 p-8 rounded-lg w-[500px]">
+
+<h2 className="text-xl font-bold mb-4">
+Backup API Proxy
+</h2>
+
+<p className="text-gray-400 mb-4">
+Add a fallback API endpoint
+</p>
+
+<input
+placeholder="https://your-backup-api.com"
+value={backupProxy}
+onChange={(e)=>setBackupProxy(e.target.value)}
+className="w-full p-3 mb-4 bg-gray-700 rounded"
+/>
+
+<button
+onClick={saveBackupProxy}
+className="w-full bg-blue-600 p-3 rounded"
+>
+Save Proxy
+</button>
+
+{backupProxy && (
+<p className="text-green-400 mt-4 text-sm">
+Current: {backupProxy}
+</p>
+)}
 
 </div>
 
