@@ -52,7 +52,7 @@ return(
 <div className="bg-gray-800 p-8 rounded w-80">
 
 <h1 className="text-xl mb-4">
-Login
+Checker Login
 </h1>
 
 <input
