@@ -150,7 +150,7 @@ return(
 <div>
 
 <h1 className="text-xl font-bold mb-8">
-Fintech Panel
+Card Checker
 </h1>
 
 <ul className="space-y-4">
