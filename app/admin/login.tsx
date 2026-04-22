@@ -5,67 +5,72 @@ import { useRouter } from "next/navigation"
 
 export default function AdminLogin(){
 
-const router = useRouter()
+  const router = useRouter()
 
-const [username,setUsername] = useState("")
-const [password,setPassword] = useState("")
+  const [username,setUsername] = useState("")
+  const [password,setPassword] = useState("")
 
-function handleLogin(){
+  async function handleLogin(){
 
-if(username === "admin" && password === "admin123"){
+    // ✅ Admin login (unchanged)
+    if(username === "admin" && password === "admin123"){
+      localStorage.setItem("adminAuth","true")
+      router.push("/admin")
+      return
+    }
 
-localStorage.setItem("adminAuth","true")
+    // ✅ User login (from database)
+    const res = await fetch("/api/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    })
 
-router.push("/admin")
+    const data = await res.json()
 
-}else{
+    if(data.success){
+      localStorage.setItem("userAuth","true")
+      router.push("/dashboard")
+    }else{
+      alert("Invalid username or password")
+    }
+  }
 
-alert("Invalid admin credentials")
+  return(
 
-}
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
 
-}
+      <div className="bg-gray-800 p-8 rounded-lg w-96">
 
-return(
+        <h1 className="text-2xl font-bold mb-6">
+          Login
+        </h1>
 
-<div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+        <input
+          type="text"
+          placeholder="Username"
+          className="w-full p-3 mb-4 rounded bg-gray-700"
+          value={username}
+          onChange={(e)=>setUsername(e.target.value)}
+        />
 
-<div className="bg-gray-800 p-8 rounded-lg w-96">
+        <input
+          type="password"
+          placeholder="Password"
+          className="w-full p-3 mb-4 rounded bg-gray-700"
+          value={password}
+          onChange={(e)=>setPassword(e.target.value)}
+        />
 
-<h1 className="text-2xl font-bold mb-6">
-Admin Login
-</h1>
+        <button
+          onClick={handleLogin}
+          className="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold"
+        >
+          Login
+        </button>
 
-<input
-type="text"
-placeholder="Admin Username"
-className="w-full p-3 mb-4 rounded bg-gray-700"
-value={username}
-onChange={(e)=>setUsername(e.target.value)}
-/>
+      </div>
 
-<input
-type="password"
-placeholder="Admin Password"
-className="w-full p-3 mb-4 rounded bg-gray-700"
-value={password}
-onChange={(e)=>setPassword(e.target.value)}
-/>
+    </div>
 
-<button
-onClick={handleLogin}
-className="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold"
-
->
-
-Login
-
-</button>
-
-</div>
-
-</div>
-
-)
-
+  )
 }
