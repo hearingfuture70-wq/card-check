@@ -12,7 +12,7 @@ export default function AdminLogin(){
 
   async function handleLogin(){
 
-    // ✅ Admin login (unchanged)
+    // ✅ Admin login
     if(username === "admin" && password === "admin123"){
       localStorage.setItem("adminAuth","true")
       router.push("/admin")
@@ -22,6 +22,9 @@ export default function AdminLogin(){
     // ✅ User login (from database)
     const res = await fetch("/api/login", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",   // 🔥 THIS WAS MISSING
+      },
       body: JSON.stringify({ username, password }),
     })
 
