@@ -1,22 +1,18 @@
 import { db } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const { username, password } = await req.json();
+  try {
+    const { username, password, role } = await req.json();
 
-  // ✅ CREATE TABLE (runs once)
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT,
-      password TEXT
-    )
-  `);
+    await db.execute({
+      sql: "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+      args: [username, password, role],
+    });
 
-  // ✅ INSERT USER
-  await db.execute({
-    sql: "INSERT INTO users (username, password) VALUES (?, ?)",
-    args: [username, password],
-  });
+    return NextResponse.json({ success: true });
 
-  return Response.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ success: false });
+  }
 }
