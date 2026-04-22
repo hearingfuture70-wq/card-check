@@ -1,18 +1,34 @@
 import { db } from "@/lib/db";
-import { NextResponse } from "next/server";
 
+// CREATE USER
 export async function POST(req: Request) {
   try {
     const { username, password, role } = await req.json();
 
+    if (!username || !password) {
+      return Response.json({ success: false, error: "Missing fields" });
+    }
+
     await db.execute({
       sql: "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-      args: [username, password, role],
+      args: [username, password, role || "user"],
     });
 
-    return NextResponse.json({ success: true });
+    return Response.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return Response.json({ success: false, error: "Insert failed" });
+  }
+}
 
-  } catch (error) {
-    return NextResponse.json({ success: false });
+// GET USERS
+export async function GET() {
+  try {
+    const result = await db.execute("SELECT * FROM users");
+
+    return Response.json({ success: true, users: result.rows });
+  } catch (err) {
+    console.error(err);
+    return Response.json({ success: false });
   }
 }
