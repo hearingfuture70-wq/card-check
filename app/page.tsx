@@ -3,84 +3,99 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
-export default function Login(){
+export default function Login() {
 
-const router = useRouter()
+  const router = useRouter()
 
-const [user,setUser] = useState("")
-const [pass,setPass] = useState("")
+  const [user, setUser] = useState("")
+  const [pass, setPass] = useState("")
 
-function login(){
+  async function login() {
 
-/* ADMIN LOGIN */
+    /* ADMIN LOGIN */
 
-if(user === "admin" && pass === "admin123"){
+    if (user === "admin" && pass === "admin123") {
 
-localStorage.setItem("adminAuth","true")
-router.push("/admin/dashboard")
-return
+      localStorage.setItem("adminAuth", "true")
+      router.push("/admin/dashboard")
+      return
 
-}
+    }
 
-/* USER LOGIN */
+    try {
 
-const users = JSON.parse(localStorage.getItem("users") || "[]")
+      /* DATABASE LOGIN */
 
-const foundUser = users.find(
-(u:any)=>u.username === user && u.password === pass
-)
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          username: user,
+          password: pass
+        })
+      })
 
-if(!foundUser){
+      const data = await res.json()
 
-alert("Invalid username or password")
-return
+      if (!data.success) {
 
-}
+        alert("Invalid username or password")
+        return
 
-/* SAVE FULL USER OBJECT */
+      }
 
-localStorage.setItem("currentUser", JSON.stringify(foundUser))
+      /* SAVE LOGIN SESSION */
 
-router.push("/dashboard")
+      localStorage.setItem("userAuth", "true")
+      localStorage.setItem("checkerUser", user)
 
-}
+      router.push("/dashboard")
 
-return(
+    } catch (error) {
 
-<div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+      console.error(error)
+      alert("Login failed")
 
-<div className="bg-gray-800 p-8 rounded w-80">
+    }
 
-<h1 className="text-xl mb-4">
-Checker Login
-</h1>
+  }
 
-<input
-placeholder="Username"
-className="w-full p-3 mb-3 bg-gray-700 rounded"
-onChange={(e)=>setUser(e.target.value)}
-/>
+  return (
 
-<input
-type="password"
-placeholder="Password"
-className="w-full p-3 mb-3 bg-gray-700 rounded"
-onChange={(e)=>setPass(e.target.value)}
-/>
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
 
-<button
-onClick={login}
-className="w-full bg-blue-600 p-3 rounded"
->
+      <div className="bg-gray-800 p-8 rounded w-80">
 
-Login
+        <h1 className="text-xl mb-4">
+          Checker Login
+        </h1>
 
-</button>
+        <input
+          placeholder="Username"
+          className="w-full p-3 mb-3 bg-gray-700 rounded"
+          onChange={(e) => setUser(e.target.value)}
+        />
 
-</div>
+        <input
+          type="password"
+          placeholder="Password"
+          className="w-full p-3 mb-3 bg-gray-700 rounded"
+          onChange={(e) => setPass(e.target.value)}
+        />
 
-</div>
+        <button
+          onClick={login}
+          className="w-full bg-blue-600 p-3 rounded"
+        >
+          Login
+        </button>
 
-)
+      </div>
+
+    </div>
+
+  )
 
 }
