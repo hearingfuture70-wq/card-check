@@ -7,14 +7,14 @@ export default function Login() {
 
   const router = useRouter()
 
-  const [user, setUser] = useState("")
-  const [pass, setPass] = useState("")
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
 
   async function login() {
 
-    /* ADMIN LOGIN */
+    // ADMIN LOGIN
 
-    if (user === "admin" && pass === "admin123") {
+    if (username.trim() === "admin" && password.trim() === "admin123") {
 
       localStorage.setItem("adminAuth", "true")
       router.push("/admin/dashboard")
@@ -24,38 +24,39 @@ export default function Login() {
 
     try {
 
-      /* DATABASE LOGIN */
+      // API LOGIN
 
       const res = await fetch("/api/login", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: user,
-          password: pass
-        })
+          username: username.trim(),
+          password: password.trim(),
+        }),
       })
 
       const data = await res.json()
 
-      if (!data.success) {
+      console.log("LOGIN RESPONSE:", data)
+
+      if (data.success) {
+
+        localStorage.setItem("userAuth", "true")
+        localStorage.setItem("checkerUser", username)
+
+        router.push("/dashboard")
+
+      } else {
 
         alert("Invalid username or password")
-        return
 
       }
 
-      /* SAVE LOGIN SESSION */
-
-      localStorage.setItem("userAuth", "true")
-      localStorage.setItem("checkerUser", user)
-
-      router.push("/dashboard")
-
     } catch (error) {
 
-      console.error(error)
+      console.error("LOGIN ERROR:", error)
       alert("Login failed")
 
     }
@@ -75,14 +76,16 @@ export default function Login() {
         <input
           placeholder="Username"
           className="w-full p-3 mb-3 bg-gray-700 rounded"
-          onChange={(e) => setUser(e.target.value)}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
         />
 
         <input
           type="password"
           placeholder="Password"
           className="w-full p-3 mb-3 bg-gray-700 rounded"
-          onChange={(e) => setPass(e.target.value)}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
 
         <button
