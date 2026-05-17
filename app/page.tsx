@@ -73,20 +73,20 @@ export default function Login() {
           Checker Login
         </h1>
 
-        <input
-          placeholder="Username"
-          className="w-full p-3 mb-3 bg-gray-700 rounded"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
+      <input
+        value={user}
+  placeholder="Username"
+  className="w-full p-3 mb-3 bg-gray-700 rounded"
+  onChange={(e) => setUser(e.target.value)}
+/>
 
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full p-3 mb-3 bg-gray-700 rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+<input
+  value={pass}
+  type="password"
+  placeholder="Password"
+  className="w-full p-3 mb-3 bg-gray-700 rounded"
+  onChange={(e) => setPass(e.target.value)}
+/>
 
         <button
           onClick={login}
