@@ -14,7 +14,10 @@ export default function Login() {
 
     // ADMIN LOGIN
 
-    if (username.trim() === "admin" && password.trim() === "admin123") {
+    if (
+      username.trim() === "admin" &&
+      password.trim() === "admin123"
+    ) {
 
       localStorage.setItem("adminAuth", "true")
       router.push("/admin/dashboard")
@@ -73,20 +76,20 @@ export default function Login() {
           Checker Login
         </h1>
 
-      <input
-        value={user}
-  placeholder="Username"
-  className="w-full p-3 mb-3 bg-gray-700 rounded"
-  onChange={(e) => setUser(e.target.value)}
-/>
+        <input
+          value={username}
+          placeholder="Username"
+          className="w-full p-3 mb-3 bg-gray-700 rounded"
+          onChange={(e) => setUsername(e.target.value)}
+        />
 
-<input
-  value={pass}
-  type="password"
-  placeholder="Password"
-  className="w-full p-3 mb-3 bg-gray-700 rounded"
-  onChange={(e) => setPass(e.target.value)}
-/>
+        <input
+          value={password}
+          type="password"
+          placeholder="Password"
+          className="w-full p-3 mb-3 bg-gray-700 rounded"
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
         <button
           onClick={login}
