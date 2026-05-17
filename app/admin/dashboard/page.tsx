@@ -10,16 +10,12 @@ const router = useRouter()
 const [page,setPage] = useState("dashboard")
 
 const [users,setUsers] = useState<any[]>([])
-const [transactions,setTransactions] = useState<any[]>([])
-const [requests,setRequests] = useState<any[]>([])
 
 const [username,setUsername] = useState("")
 const [password,setPassword] = useState("")
 const [role,setRole] = useState("user")
 const [search,setSearch] = useState("")
-const [totalCardsChecked,setTotalCardsChecked] = useState(0)
 
-/* NEW STATE */
 const [backupProxy,setBackupProxy] = useState("")
 
 useEffect(()=>{
@@ -30,27 +26,9 @@ if(!auth){
 router.push("/admin")
 }
 
-const savedUsers = localStorage.getItem("users")
-const cardStats = localStorage.getItem("cardsChecked")
-const savedTransactions = localStorage.getItem("transactions")
-const savedRequests = localStorage.getItem("rechargeRequests")
+fetchUsers()
+
 const savedProxy = localStorage.getItem("backupProxy")
-
-if(savedUsers){
-setUsers(JSON.parse(savedUsers))
-}
-
-if(cardStats){
-setTotalCardsChecked(Number(cardStats))
-}
-
-if(savedTransactions){
-setTransactions(JSON.parse(savedTransactions))
-}
-
-if(savedRequests){
-setRequests(JSON.parse(savedRequests))
-}
 
 if(savedProxy){
 setBackupProxy(savedProxy)
@@ -58,74 +36,124 @@ setBackupProxy(savedProxy)
 
 },[])
 
-function saveUsers(updated:any){
+async function fetchUsers(){
 
-setUsers(updated)
-localStorage.setItem("users",JSON.stringify(updated))
+try{
+
+const res = await fetch("/api/users")
+const data = await res.json()
+
+if(data.success){
+setUsers(data.users)
+}
+
+}catch(err){
+console.log(err)
+}
 
 }
 
 /* CREATE USER */
 
-function createUser(){
+async function createUser(){
 
 if(!username || !password){
 alert("Enter username and password")
 return
 }
 
-const newUser = {
-id:Date.now(),
+try{
+
+const res = await fetch("/api/users",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
 username,
 password,
-role,
-credits:0
-}
+role
+})
+})
 
-const updated = [...users,newUser]
+const data = await res.json()
 
-saveUsers(updated)
+if(data.success){
+
+alert("User created successfully")
 
 setUsername("")
 setPassword("")
 setRole("user")
 
+fetchUsers()
+
+}else{
+
+alert(data.error || "Failed")
+
+}
+
+}catch(err){
+
+alert("Server error")
+
+}
+
 }
 
 /* DELETE USER */
 
-function deleteUser(id:number){
+async function deleteUser(id:number){
 
-const updated = users.filter((u)=>u.id !== id)
+try{
 
-saveUsers(updated)
+await fetch(`/api/users/${id}`,{
+method:"DELETE"
+})
+
+fetchUsers()
+
+}catch(err){
+
+console.log(err)
+
+}
 
 }
 
 /* MANUAL RECHARGE */
 
-function rechargeUser(id:number){
+async function rechargeUser(id:number){
 
 const amount = prompt("Enter credits to add")
 
 if(!amount) return
 
-const updated = users.map((u)=>{
+const user = users.find((u)=>u.id === id)
 
-if(u.id === id){
+if(!user) return
 
-return {
-...u,
-credits:(u.credits || 0) + Number(amount)
-}
+try{
 
-}
-
-return u
-
+await fetch("/api/users",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+...user,
+credits:(user.credits || 0) + Number(amount)
+})
 })
 
-saveUsers(updated)
+fetchUsers()
+
+}catch(err){
+
+console.log(err)
+
+}
 
 }
 
@@ -139,6 +167,7 @@ return
 }
 
 localStorage.setItem("backupProxy",backupProxy)
+
 alert("Backup proxy saved")
 
 }
@@ -159,8 +188,6 @@ u.username.toLowerCase().includes(search.toLowerCase())
 return(
 
 <div className="flex min-h-screen bg-gray-900 text-white">
-
-{/* SIDEBAR */}
 
 <div className="w-64 bg-gray-800 p-6 flex flex-col justify-between">
 
@@ -193,7 +220,6 @@ className="hover:text-blue-400 cursor-pointer"
 Wallet Connected
 </li>
 
-{/* NEW TAB */}
 <li
 onClick={()=>setPage("backup")}
 className="hover:text-blue-400 cursor-pointer"
@@ -214,11 +240,7 @@ Logout
 
 </div>
 
-{/* MAIN CONTENT */}
-
 <div className="flex-1 p-10">
-
-{/* DASHBOARD */}
 
 {page === "dashboard" && (
 
@@ -236,11 +258,6 @@ Admin Dashboard
 </div>
 
 <div className="bg-gray-800 p-6 rounded">
-<p className="text-gray-400">Total Cards Checked</p>
-<h2 className="text-3xl font-bold">{totalCardsChecked}</h2>
-</div>
-
-<div className="bg-gray-800 p-6 rounded">
 <p className="text-gray-400">Admins</p>
 <h2 className="text-3xl font-bold">
 {users.filter(u=>u.role==="admin").length}
@@ -253,13 +270,13 @@ Admin Dashboard
 
 )}
 
-{/* USER MANAGEMENT */}
-
 {page === "users" && (
 
 <div>
 
-<h2 className="text-2xl font-bold mb-6">User Management</h2>
+<h2 className="text-2xl font-bold mb-6">
+User Management
+</h2>
 
 <div className="bg-gray-800 p-6 rounded-lg w-96 mb-10">
 
@@ -303,7 +320,9 @@ Create User
 
 <div className="flex justify-between mb-4">
 
-<h2 className="text-lg font-semibold">Users</h2>
+<h2 className="text-lg font-semibold">
+Users
+</h2>
 
 <input
 placeholder="Search user..."
@@ -316,13 +335,17 @@ onChange={(e)=>setSearch(e.target.value)}
 <table className="w-full text-left">
 
 <thead className="border-b border-gray-700">
+
 <tr>
+
 <th className="p-2">Username</th>
 <th className="p-2">Password</th>
 <th className="p-2">Role</th>
 <th className="p-2">Credits</th>
 <th className="p-2">Action</th>
+
 </tr>
+
 </thead>
 
 <tbody>
@@ -333,15 +356,25 @@ onChange={(e)=>setSearch(e.target.value)}
 
 <td className="p-2">{u.username}</td>
 
-<td className="p-2 text-red-400">{u.password}</td>
-
-<td className="p-2">
-<span className={u.role==="admin" ? "text-yellow-400" : "text-blue-400"}>
-{u.role}
-</span>
+<td className="p-2 text-red-400">
+{u.password}
 </td>
 
-<td className="p-2">{u.credits || 0}</td>
+<td className="p-2">
+
+<span className={
+u.role==="admin"
+? "text-yellow-400"
+: "text-blue-400"
+}>
+{u.role}
+</span>
+
+</td>
+
+<td className="p-2">
+{u.credits || 0}
+</td>
 
 <td className="p-2 space-x-2">
 
@@ -375,8 +408,6 @@ Delete
 
 )}
 
-{/* WALLET */}
-
 {page === "wallet" && (
 
 <div className="bg-gray-800 p-8 rounded-lg w-[420px]">
@@ -385,24 +416,14 @@ Delete
 Wallet Connected
 </h2>
 
-<p className="text-gray-400 mb-4">
-Scan this QR code to receive payments
-</p>
-
 <img
 src="/wallet-qr.png"
 className="w-72 mx-auto rounded"
 />
 
-<p className="text-center text-gray-400 mt-4">
-TRC20 USDT Wallet
-</p>
-
 </div>
 
 )}
-
-{/* BACKUP API PROXY */}
 
 {page === "backup" && (
 
@@ -411,10 +432,6 @@ TRC20 USDT Wallet
 <h2 className="text-xl font-bold mb-4">
 Backup API Proxy
 </h2>
-
-<p className="text-gray-400 mb-4">
-Add a fallback API endpoint
-</p>
 
 <input
 placeholder="https://your-backup-api.com"
@@ -429,12 +446,6 @@ className="w-full bg-blue-600 p-3 rounded"
 >
 Save Proxy
 </button>
-
-{backupProxy && (
-<p className="text-green-400 mt-4 text-sm">
-Current: {backupProxy}
-</p>
-)}
 
 </div>
 
