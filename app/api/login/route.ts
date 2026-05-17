@@ -7,14 +7,13 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    const username = body.username?.trim();
-    const password = body.password?.trim();
+    console.log("BODY:", body);
 
-    console.log("LOGIN:", username, password);
+    const { username, password } = body;
 
     const result = await db.execute({
       sql: "SELECT * FROM users WHERE username = ? AND password = ?",
-      args: [username, password],
+      args: [username.trim(), password.trim()],
     });
 
     console.log("RESULT:", result.rows);
@@ -31,13 +30,13 @@ export async function POST(req: Request) {
       success: false,
     });
 
-  } catch (error: any) {
+  } catch (error) {
 
     console.log("LOGIN ERROR:", error);
 
     return NextResponse.json({
       success: false,
-      error: error.message,
+      error: String(error),
     });
 
   }
