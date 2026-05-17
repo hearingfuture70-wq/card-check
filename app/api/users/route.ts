@@ -1,34 +1,36 @@
-import { db } from "@/lib/db";
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-// CREATE USER
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 export async function POST(req: Request) {
   try {
-    const { username, password, role } = await req.json();
+    const body = await req.json();
 
-    if (!username || !password) {
-      return Response.json({ success: false, error: "Missing fields" });
+    const { username, password, role } = body;
+
+    const { data, error } = await supabase
+      .from("users")
+      .insert([{ username, password, role }]);
+
+    if (error) {
+      return NextResponse.json({
+        success: false,
+        error: error.message,
+      });
     }
 
-    await db.execute({
-      sql: "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-      args: [username, password, role || "user"],
+    return NextResponse.json({
+      success: true,
+      data,
     });
-
-    return Response.json({ success: true });
   } catch (err) {
-    console.error(err);
-    return Response.json({ success: false, error: "Insert failed" });
-  }
-}
-
-// GET USERS
-export async function GET() {
-  try {
-    const result = await db.execute("SELECT * FROM users");
-
-    return Response.json({ success: true, users: result.rows });
-  } catch (err) {
-    console.error(err);
-    return Response.json({ success: false });
+    return NextResponse.json({
+      success: false,
+      error: "Server error",
+    });
   }
 }
