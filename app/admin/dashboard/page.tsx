@@ -12,37 +12,25 @@ export default function AdminDashboard(){
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(false)
   const [backupProxy, setBackupProxy] = useState("")
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
 
   useEffect(() => {
     const auth = localStorage.getItem("adminAuth")
-    if (!auth) {
-      router.push("/admin")
-      return
-    }
+    if (!auth) { router.push("/admin"); return }
     fetchUsers()
   }, [])
 
-  // ✅ FETCH USERS FROM DATABASE
   async function fetchUsers() {
     try {
       const res = await fetch("/api/users")
       const data = await res.json()
-      if (data.success) {
-        setUsers(data.users)
-      } else {
-        alert("Error fetching users: " + data.error)
-      }
-    } catch (err) {
-      alert("Failed to fetch users")
-    }
+      if (data.success) setUsers(data.users)
+      else alert("Error fetching users: " + data.error)
+    } catch { alert("Failed to fetch users") }
   }
 
-  // ✅ CREATE USER IN DATABASE
   async function createUser() {
-    if (!username || !password) {
-      alert("Enter username and password")
-      return
-    }
+    if (!username || !password) { alert("Enter username and password"); return }
     setLoading(true)
     try {
       const res = await fetch("/api/users", {
@@ -53,38 +41,38 @@ export default function AdminDashboard(){
       const data = await res.json()
       if (data.success) {
         alert("User created!")
-        setUsername("")
-        setPassword("")
-        setRole("user")
-        fetchUsers() // refresh list
-      } else {
-        alert("Error: " + data.error)
-      }
-    } catch (err) {
-      alert("Failed to create user")
-    }
+        setUsername(""); setPassword(""); setRole("user")
+        fetchUsers()
+      } else alert("Error: " + data.error)
+    } catch { alert("Failed to create user") }
     setLoading(false)
   }
 
-  // ✅ DELETE USER FROM DATABASE
   async function deleteUser(id: number) {
     if (!confirm("Delete this user?")) return
     try {
-      const res = await fetch(`/api/users?id=${id}`, {
-        method: "DELETE",
-      })
+      const res = await fetch(`/api/users?id=${id}`, { method: "DELETE" })
       const data = await res.json()
-      if (data.success) {
-        fetchUsers()
-      } else {
-        alert("Error: " + data.error)
-      }
-    } catch (err) {
-      alert("Failed to delete user")
-    }
+      if (data.success) fetchUsers()
+      else alert("Error: " + data.error)
+    } catch { alert("Failed to delete user") }
   }
 
-  // ✅ RECHARGE USER IN DATABASE
+  // ✅ BULK DELETE
+  async function deleteSelected() {
+    if (selectedIds.length === 0) { alert("No users selected"); return }
+    if (!confirm(`Delete ${selectedIds.length} selected users?`)) return
+    try {
+      await Promise.all(
+        selectedIds.map((id) =>
+          fetch(`/api/users?id=${id}`, { method: "DELETE" })
+        )
+      )
+      setSelectedIds([])
+      fetchUsers()
+    } catch { alert("Failed to delete selected users") }
+  }
+
   async function rechargeUser(id: number) {
     const amount = prompt("Enter credits to add")
     if (!amount) return
@@ -95,14 +83,23 @@ export default function AdminDashboard(){
         body: JSON.stringify({ id, credits: Number(amount) }),
       })
       const data = await res.json()
-      if (data.success) {
-        fetchUsers()
-      } else {
-        alert("Error: " + data.error)
-      }
-    } catch (err) {
-      alert("Failed to recharge user")
+      if (data.success) fetchUsers()
+      else alert("Error: " + data.error)
+    } catch { alert("Failed to recharge user") }
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.length === filteredUsers.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(filteredUsers.map((u) => u.id))
     }
+  }
+
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    )
   }
 
   function logout() {
@@ -113,6 +110,8 @@ export default function AdminDashboard(){
   const filteredUsers = users.filter((u) =>
     u.username?.toLowerCase().includes(search.toLowerCase())
   )
+
+  const allSelected = filteredUsers.length > 0 && selectedIds.length === filteredUsers.length
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-white">
@@ -133,7 +132,7 @@ export default function AdminDashboard(){
       {/* MAIN */}
       <div className="flex-1 p-10">
 
-        {/* DASHBOARD STATS */}
+        {/* DASHBOARD */}
         {page === "dashboard" && (
           <div>
             <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
@@ -158,6 +157,8 @@ export default function AdminDashboard(){
         {page === "users" && (
           <div>
             <h2 className="text-2xl font-bold mb-6">User Management</h2>
+
+            {/* CREATE USER FORM */}
             <div className="bg-gray-800 p-6 rounded-lg w-96 mb-10">
               <h2 className="mb-4 font-semibold">Create User</h2>
               <input placeholder="Username" value={username}
@@ -178,16 +179,34 @@ export default function AdminDashboard(){
               </button>
             </div>
 
+            {/* USERS TABLE */}
             <div className="bg-gray-800 p-6 rounded-lg">
-              <div className="flex justify-between mb-4">
-                <h2 className="text-lg font-semibold">Users</h2>
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-lg font-semibold">Users</h2>
+                  {/* ✅ BULK DELETE BUTTON */}
+                  {selectedIds.length > 0 && (
+                    <button onClick={deleteSelected}
+                      className="bg-red-600 px-4 py-2 rounded text-sm font-semibold">
+                      🗑 Delete Selected ({selectedIds.length})
+                    </button>
+                  )}
+                </div>
                 <input placeholder="Search user..."
                   className="p-2 bg-gray-700 rounded"
                   onChange={(e) => setSearch(e.target.value)} />
               </div>
+
               <table className="w-full text-left">
                 <thead className="border-b border-gray-700">
                   <tr>
+                    {/* ✅ SELECT ALL CHECKBOX */}
+                    <th className="p-2">
+                      <input type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 cursor-pointer accent-red-500" />
+                    </th>
                     <th className="p-2">Username</th>
                     <th className="p-2">Password</th>
                     <th className="p-2">Role</th>
@@ -197,7 +216,14 @@ export default function AdminDashboard(){
                 </thead>
                 <tbody>
                   {filteredUsers.map((u) => (
-                    <tr key={u.id} className="border-b border-gray-700">
+                    <tr key={u.id} className={`border-b border-gray-700 ${selectedIds.includes(u.id) ? "bg-gray-700" : ""}`}>
+                      {/* ✅ ROW CHECKBOX */}
+                      <td className="p-2">
+                        <input type="checkbox"
+                          checked={selectedIds.includes(u.id)}
+                          onChange={() => toggleSelect(u.id)}
+                          className="w-4 h-4 cursor-pointer accent-red-500" />
+                      </td>
                       <td className="p-2">{u.username}</td>
                       <td className="p-2 text-red-400">{u.password}</td>
                       <td className="p-2">
@@ -208,9 +234,9 @@ export default function AdminDashboard(){
                       <td className="p-2">{u.credits || 0}</td>
                       <td className="p-2 space-x-2">
                         <button onClick={() => rechargeUser(u.id)}
-                          className="bg-green-600 px-3 py-1 rounded">Recharge</button>
+                          className="bg-green-600 px-3 py-1 rounded text-sm">Recharge</button>
                         <button onClick={() => deleteUser(u.id)}
-                          className="bg-red-600 px-3 py-1 rounded">Delete</button>
+                          className="bg-red-600 px-3 py-1 rounded text-sm">Delete</button>
                       </td>
                     </tr>
                   ))}
