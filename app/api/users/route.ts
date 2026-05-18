@@ -40,13 +40,17 @@ export async function POST(req: Request) {
   }
 }
 
-// ✅ RECHARGE USER (add credits)
+// ✅ RECHARGE OR DEDUCT CREDITS
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
     const { id, credits } = body;
 
-    // First get current credits
+    if (!id) {
+      return NextResponse.json({ success: false, error: "User ID required" });
+    }
+
+    // Get current credits
     const { data: user, error: fetchError } = await supabase
       .from("users")
       .select("credits")
@@ -57,7 +61,16 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: false, error: "User not found" });
     }
 
-    const newCredits = (user.credits || 0) + credits;
+    // ✅ supports both + (recharge) and - (deduct), never goes below 0
+    const newCredits = Math.max(0, (user.credits || 0) + credits);
+
+    // ✅ Block if not enough credits for deduction
+    if (credits < 0 && user.credits <= 0) {
+      return NextResponse.json({
+        success: false,
+        error: "Insufficient credits",
+      });
+    }
 
     const { data, error } = await supabase
       .from("users")
