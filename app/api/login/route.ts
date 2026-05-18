@@ -1,60 +1,41 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-// GET USERS
-export async function GET() {
-  const { data, error } = await supabase
-    .from("users")
-    .select("*");
-
-  if (error) {
-    return NextResponse.json({
-      success: false,
-      error: error.message
-    });
-  }
-
-  return NextResponse.json({
-    success: true,
-    users: data
-  });
-}
-
-// CREATE USER
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const { username, password } = body;
 
-    const { username, password, role } = body;
+    if (!username || !password) {
+      return NextResponse.json({
+        success: false,
+        error: "Username and password are required",
+      });
+    }
 
     const { data, error } = await supabase
       .from("users")
-      .insert([
-        {
-          username,
-          password,
-          role,
-          credits: 0
-        }
-      ])
-      .select();
+      .select("*")
+      .eq("username", username)
+      .eq("password", password)
+      .single();
 
-    if (error) {
+    if (error || !data) {
       return NextResponse.json({
         success: false,
-        error: error.message
+        error: "Invalid username or password",
       });
     }
 
     return NextResponse.json({
       success: true,
-      user: data
+      user: data,
     });
 
   } catch (err) {
     return NextResponse.json({
       success: false,
-      error: "Server error"
+      error: "Server error",
     });
   }
 }
