@@ -43,22 +43,67 @@ function checkCard(cardNumber: string, expiry: string, cvc: string, country: str
     "5466": { bank: "NAB Mastercard", type: "MASTERCARD", level: "Black", country: "🇦🇺 Australia" },
     "5567": { bank: "Macquarie Bank", type: "MASTERCARD", level: "Platinum", country: "🇦🇺 Australia" },
     // ========== INDIA ==========
+    "4722": { bank: "Canara Bank", type: "VISA", level: "Classic", country: "🇮🇳 India" },
+    "4721": { bank: "Canara Bank", type: "VISA", level: "Gold", country: "🇮🇳 India" },
+    "4720": { bank: "Canara Bank", type: "VISA", level: "Platinum", country: "🇮🇳 India" },
     "4386": { bank: "State Bank of India", type: "VISA", level: "Classic", country: "🇮🇳 India" },
+    "4387": { bank: "State Bank of India", type: "VISA", level: "Gold", country: "🇮🇳 India" },
+    "4388": { bank: "State Bank of India", type: "VISA", level: "Platinum", country: "🇮🇳 India" },
     "4487": { bank: "HDFC Bank", type: "VISA", level: "Platinum", country: "🇮🇳 India" },
+    "4488": { bank: "HDFC Bank", type: "VISA", level: "Signature", country: "🇮🇳 India" },
+    "4489": { bank: "HDFC Bank", type: "VISA", level: "Infinite", country: "🇮🇳 India" },
     "4588": { bank: "ICICI Bank", type: "VISA", level: "Gold", country: "🇮🇳 India" },
+    "4589": { bank: "ICICI Bank", type: "VISA", level: "Platinum", country: "🇮🇳 India" },
+    "4590": { bank: "ICICI Bank", type: "VISA", level: "Signature", country: "🇮🇳 India" },
     "4689": { bank: "Axis Bank", type: "VISA", level: "World", country: "🇮🇳 India" },
+    "4690": { bank: "Axis Bank", type: "VISA", level: "Signature", country: "🇮🇳 India" },
+    "4691": { bank: "Axis Bank", type: "VISA", level: "Infinite", country: "🇮🇳 India" },
     "4790": { bank: "Kotak Mahindra Bank", type: "VISA", level: "Signature", country: "🇮🇳 India" },
+    "4791": { bank: "Kotak Mahindra Bank", type: "VISA", level: "Infinite", country: "🇮🇳 India" },
     "4891": { bank: "Punjab National Bank", type: "VISA", level: "Classic", country: "🇮🇳 India" },
+    "4892": { bank: "Punjab National Bank", type: "VISA", level: "Gold", country: "🇮🇳 India" },
     "4992": { bank: "Bank of Baroda", type: "VISA", level: "Gold", country: "🇮🇳 India" },
+    "4993": { bank: "Bank of Baroda", type: "VISA", level: "Platinum", country: "🇮🇳 India" },
+    "4152": { bank: "Union Bank of India", type: "VISA", level: "Classic", country: "🇮🇳 India" },
+    "4153": { bank: "Union Bank of India", type: "VISA", level: "Gold", country: "🇮🇳 India" },
+    "4025": { bank: "Indian Bank", type: "VISA", level: "Classic", country: "🇮🇳 India" },
+    "4027": { bank: "Central Bank of India", type: "VISA", level: "Classic", country: "🇮🇳 India" },
+    "4028": { bank: "Central Bank of India", type: "VISA", level: "Gold", country: "🇮🇳 India" },
+    "4550": { bank: "IndusInd Bank", type: "VISA", level: "Platinum", country: "🇮🇳 India" },
+    "4551": { bank: "IndusInd Bank", type: "VISA", level: "Signature", country: "🇮🇳 India" },
+    "4650": { bank: "Yes Bank", type: "VISA", level: "Gold", country: "🇮🇳 India" },
+    "4651": { bank: "Yes Bank", type: "VISA", level: "Platinum", country: "🇮🇳 India" },
+    "4750": { bank: "Federal Bank", type: "VISA", level: "Classic", country: "🇮🇳 India" },
+    "4751": { bank: "Federal Bank", type: "VISA", level: "Gold", country: "🇮🇳 India" },
+    "4850": { bank: "IDBI Bank", type: "VISA", level: "Classic", country: "🇮🇳 India" },
+    "4851": { bank: "IDBI Bank", type: "VISA", level: "Gold", country: "🇮🇳 India" },
+    "4950": { bank: "South Indian Bank", type: "VISA", level: "Classic", country: "🇮🇳 India" },
+    "4951": { bank: "Karnataka Bank", type: "VISA", level: "Gold", country: "🇮🇳 India" },
     "5181": { bank: "SBI Mastercard", type: "MASTERCARD", level: "World", country: "🇮🇳 India" },
+    "5182": { bank: "SBI Mastercard", type: "MASTERCARD", level: "Elite", country: "🇮🇳 India" },
     "5282": { bank: "HDFC Mastercard", type: "MASTERCARD", level: "Platinum", country: "🇮🇳 India" },
+    "5283": { bank: "HDFC Mastercard", type: "MASTERCARD", level: "World", country: "🇮🇳 India" },
     "5383": { bank: "ICICI Mastercard", type: "MASTERCARD", level: "Black", country: "🇮🇳 India" },
+    "5384": { bank: "ICICI Mastercard", type: "MASTERCARD", level: "World", country: "🇮🇳 India" },
     "5484": { bank: "Axis Bank MC", type: "MASTERCARD", level: "World Elite", country: "🇮🇳 India" },
-    "5585": { bank: "Yes Bank", type: "MASTERCARD", level: "Gold", country: "🇮🇳 India" },
-    "5686": { bank: "IndusInd Bank", type: "MASTERCARD", level: "Platinum", country: "🇮🇳 India" },
+    "5485": { bank: "Axis Bank MC", type: "MASTERCARD", level: "Titanium", country: "🇮🇳 India" },
+    "5585": { bank: "Yes Bank MC", type: "MASTERCARD", level: "Gold", country: "🇮🇳 India" },
+    "5686": { bank: "IndusInd Bank MC", type: "MASTERCARD", level: "Platinum", country: "🇮🇳 India" },
+    "5687": { bank: "IndusInd Bank MC", type: "MASTERCARD", level: "World", country: "🇮🇳 India" },
+    "5787": { bank: "Kotak Bank MC", type: "MASTERCARD", level: "World Elite", country: "🇮🇳 India" },
+    "5788": { bank: "Federal Bank MC", type: "MASTERCARD", level: "Gold", country: "🇮🇳 India" },
+    "5887": { bank: "Bank of Baroda MC", type: "MASTERCARD", level: "Platinum", country: "🇮🇳 India" },
+    "5988": { bank: "Canara Bank MC", type: "MASTERCARD", level: "Gold", country: "🇮🇳 India" },
+    "5989": { bank: "Union Bank MC", type: "MASTERCARD", level: "Classic", country: "🇮🇳 India" },
     "6070": { bank: "RuPay SBI", type: "RUPAY", level: "Classic", country: "🇮🇳 India" },
     "6071": { bank: "RuPay HDFC", type: "RUPAY", level: "Platinum", country: "🇮🇳 India" },
     "6072": { bank: "RuPay ICICI", type: "RUPAY", level: "Select", country: "🇮🇳 India" },
+    "6073": { bank: "RuPay Axis", type: "RUPAY", level: "Classic", country: "🇮🇳 India" },
+    "6074": { bank: "RuPay Canara", type: "RUPAY", level: "Gold", country: "🇮🇳 India" },
+    "6075": { bank: "RuPay PNB", type: "RUPAY", level: "Classic", country: "🇮🇳 India" },
+    "6076": { bank: "RuPay BOB", type: "RUPAY", level: "Platinum", country: "🇮🇳 India" },
+    "6521": { bank: "RuPay Kotak", type: "RUPAY", level: "Select", country: "🇮🇳 India" },
+    "6522": { bank: "RuPay Yes Bank", type: "RUPAY", level: "Classic", country: "🇮🇳 India" },
     // ========== EUROPE ==========
     "4026": { bank: "Barclays Bank UK", type: "VISA", level: "Platinum", country: "🇬🇧 United Kingdom" },
     "4175": { bank: "HSBC UK", type: "VISA", level: "World", country: "🇬🇧 United Kingdom" },
@@ -106,7 +151,7 @@ function checkCard(cardNumber: string, expiry: string, cvc: string, country: str
     "RUPAY": { code: "INR", symbol: "₹" },
   }
 
-  let cardInfo = { bank: "Unknown Bank", type: "VISA", level: "Classic", country: "🌍 International" }
+  let cardInfo: any = { bank: "Unknown Bank", type: "VISA", level: "Classic", country: "🌍 International" }
   const prefix4 = cardNumber.substring(0, 4)
   const prefix2 = cardNumber.substring(0, 2)
   const prefix1 = cardNumber.substring(0, 1)
@@ -116,7 +161,6 @@ function checkCard(cardNumber: string, expiry: string, cvc: string, country: str
 
   const seed = cardNumber + expiry
   const hash = seededRandom(seed)
-
   const status = statuses[hash % statuses.length]
   const balance = balances[hash % balances.length]
   const currency = currencies[cardInfo.type] || { code: "USD", symbol: "$" }
@@ -244,17 +288,23 @@ export default function Dashboard() {
   function handleBinCheck() {
     if (!bin || bin.length < 4) { alert("Enter at least 4 digits"); return }
     const binData: any = {
+      "4722": { bank: "Canara Bank", scheme: "VISA", type: "CREDIT", country: "🇮🇳 India" },
+      "4487": { bank: "HDFC Bank", scheme: "VISA", type: "CREDIT", country: "🇮🇳 India" },
+      "4386": { bank: "State Bank of India", scheme: "VISA", type: "DEBIT", country: "🇮🇳 India" },
+      "4588": { bank: "ICICI Bank", scheme: "VISA", type: "CREDIT", country: "🇮🇳 India" },
+      "4689": { bank: "Axis Bank", scheme: "VISA", type: "CREDIT", country: "🇮🇳 India" },
       "4111": { bank: "Chase Bank USA", scheme: "VISA", type: "CREDIT", country: "🇺🇸 United States" },
       "4514": { bank: "Commonwealth Bank", scheme: "VISA", type: "DEBIT", country: "🇦🇺 Australia" },
-      "4487": { bank: "HDFC Bank", scheme: "VISA", type: "CREDIT", country: "🇮🇳 India" },
       "4026": { bank: "Barclays Bank", scheme: "VISA", type: "CREDIT", country: "🇬🇧 United Kingdom" },
       "5200": { bank: "Bank of America", scheme: "MASTERCARD", type: "CREDIT", country: "🇺🇸 United States" },
-      "5163": { bank: "Commonwealth Bank", scheme: "MASTERCARD", type: "CREDIT", country: "🇦🇺 Australia" },
       "5282": { bank: "HDFC Mastercard", scheme: "MASTERCARD", type: "CREDIT", country: "🇮🇳 India" },
+      "5383": { bank: "ICICI Mastercard", scheme: "MASTERCARD", type: "CREDIT", country: "🇮🇳 India" },
+      "5163": { bank: "Commonwealth Bank", scheme: "MASTERCARD", type: "CREDIT", country: "🇦🇺 Australia" },
       "5133": { bank: "Barclays MC", scheme: "MASTERCARD", type: "CREDIT", country: "🇬🇧 United Kingdom" },
       "3714": { bank: "American Express", scheme: "AMEX", type: "CREDIT", country: "🇺🇸 United States" },
       "6011": { bank: "Discover", scheme: "DISCOVER", type: "CREDIT", country: "🇺🇸 United States" },
       "6070": { bank: "RuPay SBI", scheme: "RUPAY", type: "DEBIT", country: "🇮🇳 India" },
+      "6071": { bank: "RuPay HDFC", scheme: "RUPAY", type: "DEBIT", country: "🇮🇳 India" },
     }
     const schemes: any = {
       "4": { bank: "VISA Issuing Bank", scheme: "VISA", type: "CREDIT", country: "🌍 International" },
@@ -310,7 +360,11 @@ export default function Dashboard() {
               className="w-full p-2 mb-2 bg-gray-700 rounded"
             />
             <button
-              onClick={() => { if (!rechargeAmount) { alert("Enter amount"); return } alert("Request sent to admin!"); setRechargeAmount("") }}
+              onClick={() => {
+                if (!rechargeAmount) { alert("Enter amount"); return }
+                alert("Recharge request sent to admin!")
+                setRechargeAmount("")
+              }}
               className="w-full bg-yellow-500 hover:bg-yellow-600 text-black p-2 rounded font-semibold"
             >
               Request Recharge
@@ -430,7 +484,7 @@ export default function Dashboard() {
             <textarea
               value={bulkInput}
               onChange={(e) => setBulkInput(e.target.value)}
-              placeholder={`4111111111111111|12/25|123\n5200000000000007|08/26|456\n3714496353984312|11/24|789`}
+              placeholder={`4111111111111111|12/25|123\n5200000000000007|08/26|456\n4722629090933487|01/30|157`}
               className="w-full p-3 bg-gray-700 rounded text-sm font-mono resize-none outline-none mb-3"
               rows={5}
             />
@@ -461,7 +515,9 @@ export default function Dashboard() {
                   <div className="flex flex-col gap-1">
                     <span className="font-mono text-xs text-gray-300">{r.cardNumber || r.raw}</span>
                     <span className="text-xs text-gray-400">
-                      {r.status !== "INVALID" ? `${r.expiry} • ${r.type} • ${r.bank} • ${r.country}` : "Invalid format"}
+                      {r.status !== "INVALID"
+                        ? `${r.expiry} • ${r.type} • ${r.bank} • ${r.country}`
+                        : "Invalid format — use CardNumber|MM/YY|CVV"}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
