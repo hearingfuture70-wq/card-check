@@ -2,53 +2,138 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
+function seededRandom(seed: string) {
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash)
+    hash = hash & hash
+  }
+  return Math.abs(hash)
+}
+
 function checkCard(cardNumber: string, expiry: string, cvc: string, country: string) {
   const bins: any = {
-    "4": { bank: "Chase Bank", type: "VISA", level: "Classic" },
-    "51": { bank: "Citibank", type: "MASTERCARD", level: "Gold" },
-    "52": { bank: "Bank of America", type: "MASTERCARD", level: "Platinum" },
-    "53": { bank: "Wells Fargo", type: "MASTERCARD", level: "Classic" },
-    "54": { bank: "Capital One", type: "MASTERCARD", level: "World" },
-    "55": { bank: "HSBC Bank", type: "MASTERCARD", level: "Black" },
-    "34": { bank: "American Express", type: "AMEX", level: "Gold" },
-    "37": { bank: "American Express", type: "AMEX", level: "Platinum" },
-    "6011": { bank: "Discover Bank", type: "DISCOVER", level: "Classic" },
+    // ========== USA ==========
+    "4111": { bank: "Chase Bank USA", type: "VISA", level: "Classic", country: "🇺🇸 United States" },
+    "4012": { bank: "Bank of America", type: "VISA", level: "Platinum", country: "🇺🇸 United States" },
+    "4013": { bank: "Wells Fargo", type: "VISA", level: "Gold", country: "🇺🇸 United States" },
+    "4024": { bank: "Citibank USA", type: "VISA", level: "Classic", country: "🇺🇸 United States" },
+    "4532": { bank: "US Bank", type: "VISA", level: "Gold", country: "🇺🇸 United States" },
+    "4716": { bank: "Capital One USA", type: "VISA", level: "World", country: "🇺🇸 United States" },
+    "4929": { bank: "PNC Bank", type: "VISA", level: "Classic", country: "🇺🇸 United States" },
+    "5100": { bank: "Chase Mastercard", type: "MASTERCARD", level: "World", country: "🇺🇸 United States" },
+    "5200": { bank: "Bank of America MC", type: "MASTERCARD", level: "Platinum", country: "🇺🇸 United States" },
+    "5310": { bank: "Wells Fargo MC", type: "MASTERCARD", level: "Gold", country: "🇺🇸 United States" },
+    "5411": { bank: "Citibank MC", type: "MASTERCARD", level: "Black", country: "🇺🇸 United States" },
+    "5500": { bank: "Capital One MC", type: "MASTERCARD", level: "World Elite", country: "🇺🇸 United States" },
+    "3714": { bank: "American Express USA", type: "AMEX", level: "Gold", country: "🇺🇸 United States" },
+    "3782": { bank: "American Express USA", type: "AMEX", level: "Platinum", country: "🇺🇸 United States" },
+    "6011": { bank: "Discover USA", type: "DISCOVER", level: "Classic", country: "🇺🇸 United States" },
+    "6440": { bank: "Discover USA", type: "DISCOVER", level: "Gold", country: "🇺🇸 United States" },
+    // ========== AUSTRALIA ==========
+    "4514": { bank: "Commonwealth Bank", type: "VISA", level: "Gold", country: "🇦🇺 Australia" },
+    "4557": { bank: "ANZ Bank", type: "VISA", level: "Platinum", country: "🇦🇺 Australia" },
+    "4658": { bank: "Westpac Bank", type: "VISA", level: "Classic", country: "🇦🇺 Australia" },
+    "4773": { bank: "NAB Bank", type: "VISA", level: "World", country: "🇦🇺 Australia" },
+    "4882": { bank: "St George Bank", type: "VISA", level: "Gold", country: "🇦🇺 Australia" },
+    "4903": { bank: "Bendigo Bank", type: "VISA", level: "Classic", country: "🇦🇺 Australia" },
+    "5163": { bank: "Commonwealth Bank MC", type: "MASTERCARD", level: "Platinum", country: "🇦🇺 Australia" },
+    "5264": { bank: "ANZ Mastercard", type: "MASTERCARD", level: "Gold", country: "🇦🇺 Australia" },
+    "5365": { bank: "Westpac MC", type: "MASTERCARD", level: "World", country: "🇦🇺 Australia" },
+    "5466": { bank: "NAB Mastercard", type: "MASTERCARD", level: "Black", country: "🇦🇺 Australia" },
+    "5567": { bank: "Macquarie Bank", type: "MASTERCARD", level: "Platinum", country: "🇦🇺 Australia" },
+    // ========== INDIA ==========
+    "4386": { bank: "State Bank of India", type: "VISA", level: "Classic", country: "🇮🇳 India" },
+    "4487": { bank: "HDFC Bank", type: "VISA", level: "Platinum", country: "🇮🇳 India" },
+    "4588": { bank: "ICICI Bank", type: "VISA", level: "Gold", country: "🇮🇳 India" },
+    "4689": { bank: "Axis Bank", type: "VISA", level: "World", country: "🇮🇳 India" },
+    "4790": { bank: "Kotak Mahindra Bank", type: "VISA", level: "Signature", country: "🇮🇳 India" },
+    "4891": { bank: "Punjab National Bank", type: "VISA", level: "Classic", country: "🇮🇳 India" },
+    "4992": { bank: "Bank of Baroda", type: "VISA", level: "Gold", country: "🇮🇳 India" },
+    "5181": { bank: "SBI Mastercard", type: "MASTERCARD", level: "World", country: "🇮🇳 India" },
+    "5282": { bank: "HDFC Mastercard", type: "MASTERCARD", level: "Platinum", country: "🇮🇳 India" },
+    "5383": { bank: "ICICI Mastercard", type: "MASTERCARD", level: "Black", country: "🇮🇳 India" },
+    "5484": { bank: "Axis Bank MC", type: "MASTERCARD", level: "World Elite", country: "🇮🇳 India" },
+    "5585": { bank: "Yes Bank", type: "MASTERCARD", level: "Gold", country: "🇮🇳 India" },
+    "5686": { bank: "IndusInd Bank", type: "MASTERCARD", level: "Platinum", country: "🇮🇳 India" },
+    "6070": { bank: "RuPay SBI", type: "RUPAY", level: "Classic", country: "🇮🇳 India" },
+    "6071": { bank: "RuPay HDFC", type: "RUPAY", level: "Platinum", country: "🇮🇳 India" },
+    "6072": { bank: "RuPay ICICI", type: "RUPAY", level: "Select", country: "🇮🇳 India" },
+    // ========== EUROPE ==========
+    "4026": { bank: "Barclays Bank UK", type: "VISA", level: "Platinum", country: "🇬🇧 United Kingdom" },
+    "4175": { bank: "HSBC UK", type: "VISA", level: "World", country: "🇬🇧 United Kingdom" },
+    "4276": { bank: "Lloyds Bank", type: "VISA", level: "Gold", country: "🇬🇧 United Kingdom" },
+    "4377": { bank: "NatWest Bank", type: "VISA", level: "Classic", country: "🇬🇧 United Kingdom" },
+    "4478": { bank: "Santander UK", type: "VISA", level: "Platinum", country: "🇬🇧 United Kingdom" },
+    "4539": { bank: "Deutsche Bank", type: "VISA", level: "Gold", country: "🇩🇪 Germany" },
+    "4640": { bank: "Commerzbank", type: "VISA", level: "Platinum", country: "🇩🇪 Germany" },
+    "4741": { bank: "BNP Paribas", type: "VISA", level: "World", country: "🇫🇷 France" },
+    "4842": { bank: "Credit Agricole", type: "VISA", level: "Gold", country: "🇫🇷 France" },
+    "4943": { bank: "ING Bank", type: "VISA", level: "Classic", country: "🇳🇱 Netherlands" },
+    "5133": { bank: "Barclays MC", type: "MASTERCARD", level: "Black", country: "🇬🇧 United Kingdom" },
+    "5234": { bank: "HSBC MC UK", type: "MASTERCARD", level: "World Elite", country: "🇬🇧 United Kingdom" },
+    "5335": { bank: "Deutsche Bank MC", type: "MASTERCARD", level: "Gold", country: "🇩🇪 Germany" },
+    "5436": { bank: "BNP Paribas MC", type: "MASTERCARD", level: "Platinum", country: "🇫🇷 France" },
+    "5537": { bank: "Societe Generale", type: "MASTERCARD", level: "World", country: "🇫🇷 France" },
+    "5638": { bank: "UniCredit Bank", type: "MASTERCARD", level: "Gold", country: "🇮🇹 Italy" },
+    "5739": { bank: "Santander EU", type: "MASTERCARD", level: "Platinum", country: "🇪🇸 Spain" },
+    "5840": { bank: "ABN AMRO", type: "MASTERCARD", level: "World Elite", country: "🇳🇱 Netherlands" },
+    "3411": { bank: "Amex Europe", type: "AMEX", level: "Gold", country: "🇬🇧 United Kingdom" },
+    "3711": { bank: "Amex UK Platinum", type: "AMEX", level: "Platinum", country: "🇬🇧 United Kingdom" },
+    // ========== FALLBACK ==========
+    "4": { bank: "VISA Issuing Bank", type: "VISA", level: "Classic", country: "🌍 International" },
+    "51": { bank: "Mastercard Bank", type: "MASTERCARD", level: "Gold", country: "🌍 International" },
+    "52": { bank: "Mastercard Bank", type: "MASTERCARD", level: "Platinum", country: "🌍 International" },
+    "53": { bank: "Mastercard Bank", type: "MASTERCARD", level: "Classic", country: "🌍 International" },
+    "54": { bank: "Mastercard Bank", type: "MASTERCARD", level: "World", country: "🌍 International" },
+    "55": { bank: "Mastercard Bank", type: "MASTERCARD", level: "Black", country: "🌍 International" },
+    "34": { bank: "American Express", type: "AMEX", level: "Gold", country: "🌍 International" },
+    "37": { bank: "American Express", type: "AMEX", level: "Platinum", country: "🌍 International" },
+    "6": { bank: "Discover / RuPay", type: "DISCOVER", level: "Classic", country: "🌍 International" },
   }
+
   const statuses = ["LIVE", "LIVE", "LIVE", "DEAD", "DEAD", "UNKNOWN"]
-  const balances = ["$1,250.00", "$3,780.50", "$542.20", "$12,000.00", "$890.75", "$4,321.00", "$7,654.32", "$230.10", "$15,000.00", "$2,100.80"]
+  const balances = [
+    "1,250.00", "3,780.50", "542.20", "12,000.00",
+    "890.75", "4,321.00", "7,654.32", "230.10",
+    "15,000.00", "2,100.80"
+  ]
   const currencies: any = {
     "VISA": { code: "USD", symbol: "$" },
     "MASTERCARD": { code: "EUR", symbol: "€" },
     "AMEX": { code: "GBP", symbol: "£" },
     "DISCOVER": { code: "AUD", symbol: "A$" },
+    "RUPAY": { code: "INR", symbol: "₹" },
   }
 
-  let cardInfo = { bank: "Unknown Bank", type: "VISA", level: "Classic" }
-  const prefix2 = cardNumber.substring(0, 2)
+  let cardInfo = { bank: "Unknown Bank", type: "VISA", level: "Classic", country: "🌍 International" }
   const prefix4 = cardNumber.substring(0, 4)
+  const prefix2 = cardNumber.substring(0, 2)
   const prefix1 = cardNumber.substring(0, 1)
   if (bins[prefix4]) cardInfo = bins[prefix4]
   else if (bins[prefix2]) cardInfo = bins[prefix2]
   else if (bins[prefix1]) cardInfo = bins[prefix1]
 
-  const status = statuses[Math.floor(Math.random() * statuses.length)]
-  const balance = balances[Math.floor(Math.random() * balances.length)]
+  const seed = cardNumber + expiry
+  const hash = seededRandom(seed)
+
+  const status = statuses[hash % statuses.length]
+  const balance = balances[hash % balances.length]
   const currency = currencies[cardInfo.type] || { code: "USD", symbol: "$" }
   const lastFour = cardNumber.slice(-4)
 
   return {
     status,
     cardNumber: `**** **** **** ${lastFour}`,
-    raw: cardNumber,
     expiry,
     cvc,
     type: cardInfo.type,
     bank: cardInfo.bank,
     level: cardInfo.level,
-    balance: status === "LIVE" ? `${currency.symbol}${balance.replace("$", "")}` : "N/A",
+    balance: status === "LIVE" ? `${currency.symbol}${balance}` : "N/A",
     currencyCode: status === "LIVE" ? currency.code : "N/A",
     currencySymbol: currency.symbol,
-    country,
+    country: cardInfo.country,
     checkedAt: new Date().toLocaleString(),
   }
 }
@@ -66,12 +151,11 @@ export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [result, setResult] = useState<any>(null)
   const [checking, setChecking] = useState(false)
-
-  // BULK CHECKER
   const [bulkInput, setBulkInput] = useState("")
   const [bulkResults, setBulkResults] = useState<any[]>([])
   const [bulkChecking, setBulkChecking] = useState(false)
   const [bulkProgress, setBulkProgress] = useState(0)
+  const [binResult, setBinResult] = useState<any>(null)
 
   useEffect(() => {
     const auth = localStorage.getItem("userAuth")
@@ -110,7 +194,6 @@ export default function Dashboard() {
     if (!card || card.length < 12) { alert("Enter a valid card number"); return }
     if (!expiry) { alert("Enter expiry date"); return }
     if (credits <= 0) { alert("❌ Insufficient credits! Please recharge."); return }
-
     setChecking(true)
     setResult(null)
     await new Promise((r) => setTimeout(r, 1500))
@@ -120,7 +203,6 @@ export default function Dashboard() {
     setChecking(false)
   }
 
-  // ✅ BULK CHECKER
   async function handleBulkCheck() {
     const lines = bulkInput.trim().split("\n").filter((l) => l.trim())
     if (lines.length === 0) { alert("Enter card details"); return }
@@ -128,36 +210,28 @@ export default function Dashboard() {
       alert(`❌ Need ${lines.length} credits but you only have ${credits}`)
       return
     }
-
     setBulkChecking(true)
     setBulkResults([])
     setBulkProgress(0)
-
     const results: any[] = []
-
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim()
-      // Support formats: 4111111111111111|12/25|123 or 4111111111111111|1225|123
       const parts = line.split("|")
       if (parts.length < 2) {
         results.push({ raw: line, status: "INVALID", error: "Wrong format" })
         setBulkResults([...results])
         continue
       }
-
       const cardNum = parts[0].trim()
       const exp = parts[1].trim()
       const cvv = parts[2]?.trim() || ""
-
       await new Promise((r) => setTimeout(r, 800))
       await deductCredit()
-
       const res = checkCard(cardNum, exp, cvv, "Auto")
       results.push({ ...res, rawLine: line })
       setBulkResults([...results])
       setBulkProgress(i + 1)
     }
-
     setBulkChecking(false)
   }
 
@@ -165,6 +239,33 @@ export default function Dashboard() {
     setBulkInput("")
     setBulkResults([])
     setBulkProgress(0)
+  }
+
+  function handleBinCheck() {
+    if (!bin || bin.length < 4) { alert("Enter at least 4 digits"); return }
+    const binData: any = {
+      "4111": { bank: "Chase Bank USA", scheme: "VISA", type: "CREDIT", country: "🇺🇸 United States" },
+      "4514": { bank: "Commonwealth Bank", scheme: "VISA", type: "DEBIT", country: "🇦🇺 Australia" },
+      "4487": { bank: "HDFC Bank", scheme: "VISA", type: "CREDIT", country: "🇮🇳 India" },
+      "4026": { bank: "Barclays Bank", scheme: "VISA", type: "CREDIT", country: "🇬🇧 United Kingdom" },
+      "5200": { bank: "Bank of America", scheme: "MASTERCARD", type: "CREDIT", country: "🇺🇸 United States" },
+      "5163": { bank: "Commonwealth Bank", scheme: "MASTERCARD", type: "CREDIT", country: "🇦🇺 Australia" },
+      "5282": { bank: "HDFC Mastercard", scheme: "MASTERCARD", type: "CREDIT", country: "🇮🇳 India" },
+      "5133": { bank: "Barclays MC", scheme: "MASTERCARD", type: "CREDIT", country: "🇬🇧 United Kingdom" },
+      "3714": { bank: "American Express", scheme: "AMEX", type: "CREDIT", country: "🇺🇸 United States" },
+      "6011": { bank: "Discover", scheme: "DISCOVER", type: "CREDIT", country: "🇺🇸 United States" },
+      "6070": { bank: "RuPay SBI", scheme: "RUPAY", type: "DEBIT", country: "🇮🇳 India" },
+    }
+    const schemes: any = {
+      "4": { bank: "VISA Issuing Bank", scheme: "VISA", type: "CREDIT", country: "🌍 International" },
+      "5": { bank: "Mastercard Issuing Bank", scheme: "MASTERCARD", type: "CREDIT", country: "🌍 International" },
+      "3": { bank: "American Express", scheme: "AMEX", type: "CREDIT", country: "🇺🇸 United States" },
+      "6": { bank: "Discover / RuPay", scheme: "DISCOVER", type: "DEBIT", country: "🌍 International" },
+    }
+    const info = binData[bin.substring(0, 4)] ||
+      schemes[bin.substring(0, 1)] ||
+      { bank: "Unknown Bank", scheme: "UNKNOWN", type: "UNKNOWN", country: "Unknown" }
+    setBinResult({ bin, ...info, checkedAt: new Date().toLocaleString() })
   }
 
   function formatExpiry(value: string) {
@@ -209,7 +310,7 @@ export default function Dashboard() {
               className="w-full p-2 mb-2 bg-gray-700 rounded"
             />
             <button
-              onClick={() => { if (!rechargeAmount) { alert("Enter amount"); return } alert("Request sent!"); setRechargeAmount("") }}
+              onClick={() => { if (!rechargeAmount) { alert("Enter amount"); return } alert("Request sent to admin!"); setRechargeAmount("") }}
               className="w-full bg-yellow-500 hover:bg-yellow-600 text-black p-2 rounded font-semibold"
             >
               Request Recharge
@@ -240,14 +341,9 @@ export default function Dashboard() {
           {/* SINGLE CARD CHECKER */}
           <div className="bg-gray-800 p-6 rounded-lg">
             <h2 className="text-lg font-semibold mb-4">Card Checker</h2>
-            <input
-              type="text"
-              placeholder="Card Number"
-              value={card}
-              maxLength={16}
+            <input type="text" placeholder="Card Number" value={card} maxLength={16}
               className="w-full p-3 rounded bg-gray-700 mb-4 outline-none tracking-widest"
-              onChange={(e) => { setResult(null); setCard(e.target.value.replace(/\D/g, "")) }}
-            />
+              onChange={(e) => { setResult(null); setCard(e.target.value.replace(/\D/g, "")) }} />
             <div className="grid grid-cols-2 gap-4 mb-4">
               <input type="text" placeholder="MM/YY" value={expiry} maxLength={5}
                 className="p-3 rounded bg-gray-700 outline-none"
@@ -263,6 +359,11 @@ export default function Dashboard() {
               <option>Canada</option>
               <option>Germany</option>
               <option>Australia</option>
+              <option>India</option>
+              <option>France</option>
+              <option>Italy</option>
+              <option>Spain</option>
+              <option>Netherlands</option>
             </select>
             <button onClick={handleCheck} disabled={checking}
               className="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold disabled:opacity-50">
@@ -299,8 +400,7 @@ export default function Dashboard() {
                       <span className={
                         label === "Balance" && result.status === "LIVE" ? "text-green-400 font-bold"
                         : label === "Type" ? "text-blue-400 font-semibold"
-                        : label === "Level" ? "text-yellow-400"
-                        : ""}>{value}</span>
+                        : label === "Level" ? "text-yellow-400" : ""}>{value}</span>
                     </div>
                   ))}
                   <div className="flex justify-between border-t border-gray-700 pt-2">
@@ -312,7 +412,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* ✅ BULK CHECKER */}
+          {/* BULK CHECKER */}
           <div className="bg-gray-800 p-6 rounded-lg flex flex-col">
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-lg font-semibold">Bulk Card Checker</h2>
@@ -320,15 +420,13 @@ export default function Dashboard() {
                 <div className="flex gap-2 text-xs">
                   <span className="bg-green-600 px-2 py-1 rounded">✅ {liveCount} Live</span>
                   <span className="bg-red-600 px-2 py-1 rounded">❌ {deadCount} Dead</span>
-                  <span className="bg-yellow-600 px-2 py-1 rounded text-black">⚠️ {unknownCount} Unknown</span>
+                  <span className="bg-yellow-600 text-black px-2 py-1 rounded">⚠️ {unknownCount} Unknown</span>
                 </div>
               )}
             </div>
-
             <p className="text-xs text-gray-400 mb-3">
               Format: <span className="text-blue-400 font-mono">CardNumber|MM/YY|CVV</span> — one per line
             </p>
-
             <textarea
               value={bulkInput}
               onChange={(e) => setBulkInput(e.target.value)}
@@ -336,34 +434,23 @@ export default function Dashboard() {
               className="w-full p-3 bg-gray-700 rounded text-sm font-mono resize-none outline-none mb-3"
               rows={5}
             />
-
-            <div className="flex gap-2 mb-4">
-              <button
-                onClick={handleBulkCheck}
-                disabled={bulkChecking}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold disabled:opacity-50"
-              >
-                {bulkChecking ? `⏳ Checking ${bulkProgress}/${bulkInput.trim().split("\n").filter(l => l.trim()).length}...` : "🔍 Bulk Check"}
+            <div className="flex gap-2 mb-3">
+              <button onClick={handleBulkCheck} disabled={bulkChecking}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold disabled:opacity-50">
+                {bulkChecking
+                  ? `⏳ Checking ${bulkProgress}/${bulkInput.trim().split("\n").filter(l => l.trim()).length}...`
+                  : "🔍 Bulk Check"}
               </button>
-              <button
-                onClick={clearBulk}
-                className="bg-gray-600 hover:bg-gray-500 px-4 rounded font-semibold"
-              >
+              <button onClick={clearBulk} className="bg-gray-600 hover:bg-gray-500 px-4 rounded font-semibold">
                 Clear
               </button>
             </div>
-
-            {/* PROGRESS BAR */}
             {bulkChecking && (
-              <div className="w-full bg-gray-700 rounded-full h-2 mb-4">
-                <div
-                  className="bg-blue-500 h-2 rounded-full transition-all"
-                  style={{ width: `${(bulkProgress / bulkInput.trim().split("\n").filter(l => l.trim()).length) * 100}%` }}
-                />
+              <div className="w-full bg-gray-700 rounded-full h-2 mb-3">
+                <div className="bg-blue-500 h-2 rounded-full transition-all"
+                  style={{ width: `${(bulkProgress / bulkInput.trim().split("\n").filter(l => l.trim()).length) * 100}%` }} />
               </div>
             )}
-
-            {/* RESULTS LIST */}
             <div className="flex-1 overflow-y-auto space-y-2 max-h-96">
               {bulkResults.map((r, i) => (
                 <div key={i} className={`p-3 rounded-lg border flex items-center justify-between text-sm ${
@@ -371,12 +458,12 @@ export default function Dashboard() {
                   : r.status === "DEAD" ? "border-red-500 bg-red-900/20"
                   : r.status === "INVALID" ? "border-gray-500 bg-gray-700/30"
                   : "border-yellow-500 bg-yellow-900/20"}`}>
-
                   <div className="flex flex-col gap-1">
-                    <span className="font-mono text-xs text-gray-300">{r.cardNumber}</span>
-                    <span className="text-xs text-gray-400">{r.expiry} • {r.type} • {r.bank}</span>
+                    <span className="font-mono text-xs text-gray-300">{r.cardNumber || r.raw}</span>
+                    <span className="text-xs text-gray-400">
+                      {r.status !== "INVALID" ? `${r.expiry} • ${r.type} • ${r.bank} • ${r.country}` : "Invalid format"}
+                    </span>
                   </div>
-
                   <div className="flex items-center gap-3">
                     {r.status === "LIVE" && (
                       <div className="text-right">
@@ -384,19 +471,22 @@ export default function Dashboard() {
                         <div className="text-xs text-gray-400">{r.currencyCode}</div>
                       </div>
                     )}
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                    <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${
                       r.status === "LIVE" ? "bg-green-500 text-white"
                       : r.status === "DEAD" ? "bg-red-500 text-white"
                       : r.status === "INVALID" ? "bg-gray-500 text-white"
                       : "bg-yellow-500 text-black"}`}>
-                      {r.status === "LIVE" ? "✅ LIVE" : r.status === "DEAD" ? "❌ DEAD" : r.status === "INVALID" ? "⛔ INVALID" : "⚠️ UNKNOWN"}
+                      {r.status === "LIVE" ? "✅ LIVE"
+                      : r.status === "DEAD" ? "❌ DEAD"
+                      : r.status === "INVALID" ? "⛔ INVALID"
+                      : "⚠️ UNKNOWN"}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
-
           </div>
+
         </div>
       </div>
 
