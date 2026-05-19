@@ -12,6 +12,7 @@ function seededRandom(seed: string): number {
 }
 
 function luhnCheck(num: string): boolean {
+  if (!/^\d+$/.test(num)) return false
   let sum = 0
   let isEven = false
   for (let i = num.length - 1; i >= 0; i--) {
@@ -58,9 +59,9 @@ function getRealisticBalance(seed: number, currencyCode: string): string {
   return amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-const INVALID_RESULT = (cardNumber: string, expiry: string, cvc: string) => ({
+const INVALID_RESULT = (cardNumber: string, expiry: string, cvc: string, message: string = "INVALID CARD NUMBER", code: string = "14") => ({
   status: "INVALID",
-  cardNumber: `**** **** **** ${cardNumber.slice(-4)}`,
+  cardNumber: cardNumber.length >= 4 ? `**** **** **** ${cardNumber.slice(-4)}` : cardNumber,
   firstSix: cardNumber.substring(0, 6),
   expiry,
   cvc,
@@ -71,10 +72,29 @@ const INVALID_RESULT = (cardNumber: string, expiry: string, cvc: string) => ({
   balance: "N/A",
   currencyCode: "N/A",
   country: "🌍 Unknown",
-  responseCode: "14",
-  responseMessage: "INVALID CARD NUMBER",
+  responseCode: code,
+  responseMessage: message,
   checkedAt: new Date().toLocaleString(),
 })
+
+function validateCard(cardNumber: string, expiry: string, cvc: string, bins: any): string | null {
+  if (!cardNumber || !/^\d+$/.test(cardNumber)) return "INVALID FORMAT"
+  if (cardNumber.length < 13 || cardNumber.length > 19) return "INVALID LENGTH"
+  const p1 = cardNumber.substring(0, 1)
+  if (!["3", "4", "5", "6"].includes(p1)) return "INVALID CARD NUMBER"
+  const p4 = cardNumber.substring(0, 4)
+  const p2 = cardNumber.substring(0, 2)
+  if (!bins[p4] && !bins[p2]) return "BIN NOT FOUND"
+  if (!luhnCheck(cardNumber)) return "INVALID CARD NUMBER"
+  if (!expiry || !/^(0[1-9]|1[0-2])\/([0-9]{2})$/.test(expiry)) return "INVALID EXPIRY"
+  const [month, year] = expiry.split("/")
+  const expDate = new Date(2000 + parseInt(year), parseInt(month) - 1, 1)
+  const now = new Date()
+  now.setDate(1)
+  if (expDate < now) return "EXPIRED CARD"
+  if (cvc && (!/^\d+$/.test(cvc) || cvc.length < 3 || cvc.length > 4)) return "INVALID CVV"
+  return null
+}
 
 function checkCard(cardNumber: string, expiry: string, cvc: string) {
   const bins: any = {
@@ -197,24 +217,16 @@ function checkCard(cardNumber: string, expiry: string, cvc: string) {
     "3711": { bank: "American Express Europe", type: "AMEX", level: "Platinum", category: "CREDIT", country: "🇬🇧 United Kingdom" },
   }
 
+  const validationError = validateCard(cardNumber, expiry, cvc, bins)
+  if (validationError) {
+    if (validationError === "EXPIRED CARD") {
+      return INVALID_RESULT(cardNumber, expiry, cvc, "EXPIRED CARD", "54")
+    }
+    return INVALID_RESULT(cardNumber, expiry, cvc, validationError, "14")
+  }
+
   const p4 = cardNumber.substring(0, 4)
   const p2 = cardNumber.substring(0, 2)
-
-  // ✅ BIN not in database = INVALID
-  if (!bins[p4] && !bins[p2]) {
-    return INVALID_RESULT(cardNumber, expiry, cvc)
-  }
-
-  // ✅ Luhn check = mathematically invalid card number
-  if (!luhnCheck(cardNumber)) {
-    return INVALID_RESULT(cardNumber, expiry, cvc)
-  }
-
-  // ✅ Card too short or too long
-  if (cardNumber.length < 13 || cardNumber.length > 19) {
-    return INVALID_RESULT(cardNumber, expiry, cvc)
-  }
-
   const cardInfo: any = bins[p4] || bins[p2]
   const currency = getCurrencyByCountry(cardInfo.country)
   const seed = cardNumber + expiry
@@ -303,17 +315,18 @@ export default function Dashboard() {
   }
 
   async function handleCheck() {
-    if (!card || card.length < 13 || card.length > 19) {
-      alert("Enter a valid card number (13-19 digits)")
-      return
-    }
-    if (!expiry) { alert("Enter expiry date"); return }
-    if (credits <= 0) { alert("❌ Insufficient credits! Please recharge."); return }
+    const cleanCard = card.replace(/\s/g, "")
+    if (!cleanCard) { alert("Enter card number"); return }
+    if (!/^\d+$/.test(cleanCard)) { alert("Card must contain only digits"); return }
+    if (cleanCard.length < 13 || cleanCard.length > 19) { alert("Card number must be 13-19 digits"); return }
+    if (!["3", "4", "5", "6"].includes(cleanCard[0])) { alert("Invalid card number"); return }
+    if (!expiry || !/^(0[1-9]|1[0-2])\/([0-9]{2})$/.test(expiry)) { alert("Invalid expiry (use MM/YY)"); return }
+    if (credits <= 0) { alert("❌ Insufficient credits!"); return }
+
     setChecking(true)
     setResult(null)
     await new Promise((r) => setTimeout(r, 1800))
-    const checkResult = checkCard(card, expiry, cvc)
-    // ✅ Only deduct credit if card is valid
+    const checkResult = checkCard(cleanCard, expiry, cvc)
     if (checkResult.status !== "INVALID") {
       await deductCredit()
     }
@@ -324,10 +337,388 @@ export default function Dashboard() {
   async function handleBulkCheck() {
     const lines = bulkInput.trim().split("\n").filter((l) => l.trim())
     if (lines.length === 0) { alert("Enter card details"); return }
+    if (credits <= 0) { alert("❌ Insufficient credits!"); return }
 
-    // Count valid cards first to check credits needed
-    const validCards = lines.filter(l => {
-      const parts = l.split("|")
-      if (parts.length < 2) return false
-      const cn = parts[0].trim()
-      return c
+    setBulkChecking(true)
+    setBulkResults([])
+    setBulkProgress(0)
+    const results: any[] = []
+
+    for (let i = 0; i < lines.length; i++) {
+      if (credits - results.filter(r => r.status !== "INVALID").length <= 0) {
+        results.push({ raw: lines[i].trim(), status: "INVALID", responseCode: "61", responseMessage: "INSUFFICIENT CREDITS" })
+        setBulkResults([...results])
+        setBulkProgress(i + 1)
+        continue
+      }
+      const line = lines[i].trim()
+      const parts = line.split("|")
+      if (parts.length < 2) {
+        results.push({ raw: line, status: "INVALID", responseCode: "14", responseMessage: "INVALID FORMAT" })
+        setBulkResults([...results])
+        setBulkProgress(i + 1)
+        continue
+      }
+      const cardNum = parts[0].trim().replace(/\s/g, "")
+      const exp = parts[1].trim()
+      const cvv = parts[2]?.trim() || ""
+      await new Promise((r) => setTimeout(r, 700))
+      const res = checkCard(cardNum, exp, cvv)
+      if (res.status !== "INVALID") {
+        await deductCredit()
+      }
+      results.push({ ...res, rawLine: line })
+      setBulkResults([...results])
+      setBulkProgress(i + 1)
+    }
+    setBulkChecking(false)
+  }
+
+  function clearBulk() {
+    setBulkInput("")
+    setBulkResults([])
+    setBulkProgress(0)
+  }
+
+  function handleBinCheck() {
+    if (!bin || bin.length < 4 || !/^\d+$/.test(bin)) {
+      alert("Enter at least 4 digits")
+      return
+    }
+    const padded = bin.padEnd(16, "0")
+    const res = checkCard(padded, "12/30", "000")
+    if (res.status === "INVALID") {
+      alert("❌ BIN not found in database")
+      setBinResult(null)
+      return
+    }
+    setBinResult({
+      bin,
+      bank: res.bank,
+      scheme: res.type,
+      category: res.category,
+      level: res.level,
+      country: res.country,
+      currency: getCurrencyByCountry(res.country).code,
+      checkedAt: res.checkedAt,
+    })
+  }
+
+  function formatExpiry(value: string) {
+    let cleaned = value.replace(/\D/g, "").substring(0, 4)
+    if (cleaned.length >= 3) return cleaned.substring(0, 2) + "/" + cleaned.substring(2)
+    return cleaned
+  }
+
+  function logout() {
+    localStorage.removeItem("userAuth")
+    localStorage.removeItem("currentUser")
+    router.push("/")
+  }
+
+  const liveCount = bulkResults.filter((r) => r.status === "LIVE").length
+  const deadCount = bulkResults.filter((r) => r.status === "DEAD").length
+  const unknownCount = bulkResults.filter((r) => r.status === "UNKNOWN").length
+  const invalidCount = bulkResults.filter((r) => r.status === "INVALID").length
+
+  return (
+    <div className="flex min-h-screen bg-gray-900 text-white">
+
+      {/* SIDEBAR */}
+      <div className="w-64 bg-gray-800 p-6 flex flex-col justify-between">
+        <div>
+          <h1 className="text-xl font-bold mb-8">Card Checker</h1>
+          <ul className="space-y-4">
+            <li className="hover:text-blue-400 cursor-pointer">Dashboard</li>
+            <li className="hover:text-blue-400 cursor-pointer">Card Checker</li>
+            <li className="hover:text-blue-400 cursor-pointer">BIN Validator</li>
+            <li className="hover:text-blue-400 cursor-pointer">Countries</li>
+            <li onClick={() => setShowPlans(true)} className="hover:text-yellow-400 cursor-pointer">Plans / Tariffs</li>
+          </ul>
+          <div className="mt-8">
+            <h2 className="text-sm font-semibold mb-2">Recharge Credits</h2>
+            <input placeholder="Enter credits" value={rechargeAmount}
+              onChange={(e) => setRechargeAmount(e.target.value)}
+              className="w-full p-2 mb-2 bg-gray-700 rounded" />
+            <button
+              onClick={() => { if (!rechargeAmount) { alert("Enter amount"); return } alert("Recharge request sent!"); setRechargeAmount("") }}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black p-2 rounded font-semibold">
+              Request Recharge
+            </button>
+          </div>
+        </div>
+        <button onClick={logout} className="bg-red-600 hover:bg-red-700 p-3 rounded font-semibold w-full">Logout</button>
+      </div>
+
+      {/* MAIN */}
+      <div className="flex-1 p-10">
+
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-10">
+          <h1 className="text-3xl font-bold">Card Inquiry Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <div className={`px-4 py-2 rounded font-bold ${credits > 0 ? "bg-gray-800 text-green-400" : "bg-red-900 text-red-400"}`}>
+              Credits: {credits}
+            </div>
+            <img src="https://i.pravatar.cc/40" className="w-10 h-10 rounded-full" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-8">
+
+          {/* SINGLE CARD CHECKER */}
+          <div className="bg-gray-800 p-6 rounded-lg">
+            <h2 className="text-lg font-semibold mb-4">Card Checker</h2>
+            <input type="text" placeholder="Card Number" value={card} maxLength={19}
+              className="w-full p-3 rounded bg-gray-700 mb-4 outline-none tracking-widest font-mono"
+              onChange={(e) => { setResult(null); setCard(e.target.value.replace(/\D/g, "")) }} />
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <input type="text" placeholder="MM/YY" value={expiry} maxLength={5}
+                className="p-3 rounded bg-gray-700 outline-none"
+                onChange={(e) => setExpiry(formatExpiry(e.target.value))} />
+              <input type="text" placeholder="CVC" value={cvc} maxLength={4}
+                className="p-3 rounded bg-gray-700 outline-none"
+                onChange={(e) => setCvc(e.target.value.replace(/\D/g, ""))} />
+            </div>
+            <select className="w-full p-3 rounded bg-gray-700 mb-4" onChange={(e) => setCountry(e.target.value)}>
+              <option>Select Country</option>
+              <option>United States</option>
+              <option>United Kingdom</option>
+              <option>Canada</option>
+              <option>Germany</option>
+              <option>France</option>
+              <option>Italy</option>
+              <option>Spain</option>
+              <option>Netherlands</option>
+              <option>Australia</option>
+              <option>India</option>
+              <option>Japan</option>
+              <option>Singapore</option>
+            </select>
+            <button onClick={handleCheck} disabled={checking}
+              className="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold disabled:opacity-50">
+              {checking ? "⏳ Processing..." : "Check Card"}
+            </button>
+
+            {result && result.status === "INVALID" && (
+              <div className="mt-6 p-4 rounded-lg border border-gray-500 bg-gray-700/30">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-bold text-lg">Result</h3>
+                  <span className="px-3 py-1 rounded-full text-sm font-bold bg-gray-500 text-white">⛔ INVALID</span>
+                </div>
+                <div className="bg-gray-600/30 text-xs font-mono px-3 py-2 rounded mb-3 text-gray-300">
+                  RC: {result.responseCode} — {result.responseMessage}
+                </div>
+                <p className="text-gray-400 text-sm text-center py-2">
+                  This card could not be validated.
+                </p>
+                <p className="text-gray-500 text-xs text-center">
+                  No credits were deducted.
+                </p>
+              </div>
+            )}
+
+            {result && result.status !== "INVALID" && (
+              <div className={`mt-6 p-4 rounded-lg border ${
+                result.status === "LIVE" ? "border-green-500 bg-green-900/20"
+                : result.status === "DEAD" ? "border-red-500 bg-red-900/20"
+                : "border-yellow-500 bg-yellow-900/20"}`}>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-lg">Result</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400 font-mono">RC: {result.responseCode}</span>
+                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                      result.status === "LIVE" ? "bg-green-500 text-white"
+                      : result.status === "DEAD" ? "bg-red-500 text-white"
+                      : "bg-yellow-500 text-black"}`}>
+                      {result.status}
+                    </span>
+                  </div>
+                </div>
+                <div className={`text-xs font-mono px-3 py-2 rounded mb-4 ${
+                  result.status === "LIVE" ? "bg-green-800/40 text-green-300"
+                  : result.status === "DEAD" ? "bg-red-800/40 text-red-300"
+                  : "bg-yellow-800/40 text-yellow-300"}`}>
+                  {result.responseCode} — {result.responseMessage}
+                </div>
+                <div className="space-y-2 text-sm">
+                  {[
+                    ["Card Number", result.cardNumber],
+                    ["BIN / First 6", result.firstSix],
+                    ["Expiry", result.expiry],
+                    ["Network", result.type],
+                    ["Category", result.category],
+                    ["Issuing Bank", result.bank],
+                    ["Card Level", result.level],
+                    ["Country", result.country],
+                    ["Balance", result.balance],
+                    ["Currency", result.currencyCode],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex justify-between py-1 border-b border-gray-700/50">
+                      <span className="text-gray-400">{label}</span>
+                      <span className={
+                        label === "Balance" && result.status === "LIVE" ? "text-green-400 font-bold"
+                        : label === "Network" ? (
+                          result.type === "VISA" ? "text-blue-400 font-semibold"
+                          : result.type === "MASTERCARD" ? "text-orange-400 font-semibold"
+                          : result.type === "AMEX" ? "text-cyan-400 font-semibold"
+                          : result.type === "RUPAY" ? "text-green-400 font-semibold"
+                          : "text-gray-300 font-semibold")
+                        : label === "Card Level" ? "text-yellow-400"
+                        : label === "Category" ? "text-purple-400"
+                        : label === "BIN / First 6" ? "text-blue-400 font-mono"
+                        : label === "Card Number" ? "font-mono"
+                        : ""}>{value}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between pt-2">
+                    <span className="text-gray-400">Checked At</span>
+                    <span className="text-xs text-gray-400">{result.checkedAt}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* BULK CHECKER */}
+          <div className="bg-gray-800 p-6 rounded-lg flex flex-col">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-lg font-semibold">Bulk Card Checker</h2>
+              {bulkResults.length > 0 && (
+                <div className="flex gap-1 text-xs flex-wrap justify-end">
+                  <span className="bg-green-600 px-2 py-1 rounded">✅ {liveCount}</span>
+                  <span className="bg-red-600 px-2 py-1 rounded">❌ {deadCount}</span>
+                  <span className="bg-yellow-600 text-black px-2 py-1 rounded">⚠️ {unknownCount}</span>
+                  <span className="bg-gray-600 px-2 py-1 rounded">⛔ {invalidCount}</span>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              Format: <span className="text-blue-400 font-mono">CardNumber|MM/YY|CVV</span> — one per line
+            </p>
+            <textarea value={bulkInput} onChange={(e) => setBulkInput(e.target.value)}
+              placeholder={`4722629090933487|01/30|157\n4487123456789012|06/27|321\n5282987654321098|09/28|456`}
+              className="w-full p-3 bg-gray-700 rounded text-sm font-mono resize-none outline-none mb-3"
+              rows={5} />
+            <div className="flex gap-2 mb-3">
+              <button onClick={handleBulkCheck} disabled={bulkChecking}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold disabled:opacity-50">
+                {bulkChecking
+                  ? `⏳ ${bulkProgress}/${bulkInput.trim().split("\n").filter(l => l.trim()).length}...`
+                  : "🔍 Bulk Check"}
+              </button>
+              <button onClick={clearBulk} className="bg-gray-600 hover:bg-gray-500 px-4 rounded">Clear</button>
+            </div>
+            {bulkChecking && (
+              <div className="w-full bg-gray-700 rounded-full h-2 mb-3">
+                <div className="bg-blue-500 h-2 rounded-full transition-all"
+                  style={{ width: `${(bulkProgress / Math.max(1, bulkInput.trim().split("\n").filter(l => l.trim()).length)) * 100}%` }} />
+              </div>
+            )}
+            <div className="flex-1 overflow-y-auto space-y-2 max-h-96">
+              {bulkResults.map((r, i) => (
+                <div key={i} className={`p-3 rounded-lg border ${
+                  r.status === "LIVE" ? "border-green-500 bg-green-900/20"
+                  : r.status === "DEAD" ? "border-red-500 bg-red-900/20"
+                  : r.status === "INVALID" ? "border-gray-500 bg-gray-700/30"
+                  : "border-yellow-500 bg-yellow-900/20"}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono text-xs text-gray-200">{r.cardNumber || r.raw}</span>
+                      <span className="text-xs text-gray-400">
+                        {r.status !== "INVALID"
+                          ? `${r.expiry} • ${r.type} • ${r.category} • ${r.bank}`
+                          : "Invalid card details"}
+                      </span>
+                      {r.status !== "INVALID" && (
+                        <span className="text-xs text-gray-500">{r.country}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 ml-2">
+                      {r.status === "LIVE" && (
+                        <div className="text-right">
+                          <div className="text-green-400 font-bold text-sm whitespace-nowrap">{r.balance}</div>
+                          <div className="text-xs text-gray-400">{r.currencyCode}</div>
+                        </div>
+                      )}
+                      <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${
+                        r.status === "LIVE" ? "bg-green-500 text-white"
+                        : r.status === "DEAD" ? "bg-red-500 text-white"
+                        : r.status === "INVALID" ? "bg-gray-500 text-white"
+                        : "bg-yellow-500 text-black"}`}>
+                        {r.status === "LIVE" ? "✅ LIVE"
+                        : r.status === "DEAD" ? "❌ DEAD"
+                        : r.status === "INVALID" ? "⛔ INVALID"
+                        : "⚠️ UNKNOWN"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-1 text-xs font-mono text-gray-500">
+                    RC: {r.responseCode} — {r.responseMessage}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* BIN VALIDATOR */}
+        <div className="mt-8 bg-gray-800 p-6 rounded-lg">
+          <h2 className="text-lg font-semibold mb-4">BIN Validator</h2>
+          <div className="flex gap-3 mb-4">
+            <input type="text" placeholder="Enter BIN (4-6 digits)" value={bin} maxLength={6}
+              className="flex-1 p-3 rounded bg-gray-700 outline-none font-mono"
+              onChange={(e) => { setBinResult(null); setBin(e.target.value.replace(/\D/g, "")) }} />
+            <button onClick={handleBinCheck}
+              className="bg-green-600 hover:bg-green-700 px-6 rounded font-semibold">
+              Check BIN
+            </button>
+          </div>
+          {binResult && (
+            <div className="grid grid-cols-4 gap-4 text-sm">
+              {[
+                ["BIN", binResult.bin],
+                ["Bank", binResult.bank],
+                ["Scheme", binResult.scheme],
+                ["Category", binResult.category],
+                ["Level", binResult.level],
+                ["Country", binResult.country],
+                ["Currency", binResult.currency],
+                ["Checked At", binResult.checkedAt],
+              ].map(([label, value]) => (
+                <div key={label} className="bg-gray-700 p-3 rounded">
+                  <p className="text-gray-400 text-xs mb-1">{label}</p>
+                  <p className="font-semibold text-sm">{value}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* PLANS POPUP */}
+      {showPlans && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-8 rounded-lg w-[420px]">
+            <h2 className="text-xl font-bold mb-6 text-center">Credit Tariffs</h2>
+            <div className="space-y-2 text-center text-gray-200">
+              <p>1 Credit = $1</p>
+              <p>100 Credits = $25</p>
+              <p>250 Credits = $50</p>
+              <p>500 Credits = $100</p>
+              <p>1000 Credits = $200</p>
+              <p>5000 Credits = $500</p>
+              <p>10000 Credits = $1000</p>
+              <p>50000 Credits = $5000</p>
+            </div>
+            <button onClick={() => setShowPlans(false)}
+              className="mt-6 w-full bg-red-600 hover:bg-red-700 p-3 rounded font-semibold">Close</button>
+          </div>
+        </div>
+      )}
+
+    </div>
+  )
+}
