@@ -215,7 +215,7 @@ function checkCard(cardNumber: string, expiry: string, cvc: string) {
     "5840": { bank: "ABN AMRO Bank NV", type: "MASTERCARD", level: "World Elite", category: "CREDIT", country: "🇳🇱 Netherlands" },
     "3411": { bank: "American Express Europe", type: "AMEX", level: "Gold", category: "CREDIT", country: "🇬🇧 United Kingdom" },
     "3711": { bank: "American Express Europe", type: "AMEX", level: "Platinum", category: "CREDIT", country: "🇬🇧 United Kingdom" },
-    // ===== TWO-DIGIT FALLBACKS — catches all real cards =====
+    // ===== TWO-DIGIT FALLBACKS =====
     "40": { bank: "Visa Issuing Bank", type: "VISA", level: "Classic", category: "DEBIT", country: "🇺🇸 United States" },
     "41": { bank: "Visa Issuing Bank", type: "VISA", level: "Classic", category: "CREDIT", country: "🇺🇸 United States" },
     "42": { bank: "Visa Issuing Bank", type: "VISA", level: "Gold", category: "CREDIT", country: "🇺🇸 United States" },
@@ -301,7 +301,16 @@ export default function Dashboard() {
   const [bulkProgress, setBulkProgress] = useState(0)
   const [binResult, setBinResult] = useState<any>(null)
 
+  // ─── Determine if all required fields are filled ───────────────────────────
+  const isFormValid =
+    card.trim().length >= 13 &&
+    expiry.trim().length === 5 &&
+    cvc.trim().length >= 3 &&
+    country !== "" &&
+    country !== "Select Country"
+
   useEffect(() => {
+    if (typeof window === "undefined") return
     const auth = localStorage.getItem("userAuth")
     if (!auth) { router.push("/"); return }
     const savedUser = JSON.parse(localStorage.getItem("currentUser") || "{}")
@@ -335,14 +344,11 @@ export default function Dashboard() {
   }
 
   async function handleCheck() {
-    const cleanCard = card.replace(/\s/g, "")
-    if (!cleanCard) { alert("Enter card number"); return }
-    if (!/^\d+$/.test(cleanCard)) { alert("Card must contain only digits"); return }
-    if (cleanCard.length < 13 || cleanCard.length > 19) { alert("Card number must be 13-19 digits"); return }
-    if (!["3", "4", "5", "6"].includes(cleanCard[0])) { alert("Invalid card number"); return }
-    if (!expiry || !/^(0[1-9]|1[0-2])\/([0-9]{2})$/.test(expiry)) { alert("Invalid expiry (use MM/YY)"); return }
+    // Guard: all fields must be filled (button should already be disabled, but double-check)
+    if (!isFormValid) return
     if (credits <= 0) { alert("❌ Insufficient credits!"); return }
 
+    const cleanCard = card.replace(/\s/g, "")
     setChecking(true)
     setResult(null)
     await new Promise((r) => setTimeout(r, 1800))
@@ -373,15 +379,22 @@ export default function Dashboard() {
       }
       const line = lines[i].trim()
       const parts = line.split("|")
-      if (parts.length < 2) {
-        results.push({ raw: line, status: "INVALID", responseCode: "14", responseMessage: "INVALID FORMAT" })
+      if (parts.length < 3) {
+        // ── FIX: Bulk also requires CVV (at least 3 parts) ──
+        results.push({ raw: line, status: "INVALID", responseCode: "14", responseMessage: "MISSING CVV — Use format: CardNumber|MM/YY|CVV" })
         setBulkResults([...results])
         setBulkProgress(i + 1)
         continue
       }
       const cardNum = parts[0].trim().replace(/\s/g, "")
       const exp = parts[1].trim()
-      const cvv = parts[2]?.trim() || ""
+      const cvv = parts[2].trim()
+      if (!cvv || cvv.length < 3) {
+        results.push({ raw: line, status: "INVALID", responseCode: "14", responseMessage: "INVALID CVV" })
+        setBulkResults([...results])
+        setBulkProgress(i + 1)
+        continue
+      }
       await new Promise((r) => setTimeout(r, 700))
       const res = checkCard(cardNum, exp, cvv)
       if (res.status !== "INVALID") {
@@ -431,8 +444,10 @@ export default function Dashboard() {
   }
 
   function logout() {
-    localStorage.removeItem("userAuth")
-    localStorage.removeItem("currentUser")
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("userAuth")
+      localStorage.removeItem("currentUser")
+    }
     router.push("/")
   }
 
@@ -440,6 +455,17 @@ export default function Dashboard() {
   const deadCount = bulkResults.filter((r) => r.status === "DEAD").length
   const unknownCount = bulkResults.filter((r) => r.status === "UNKNOWN").length
   const invalidCount = bulkResults.filter((r) => r.status === "INVALID").length
+
+  // Helper: tooltip message for disabled button
+  const disabledReason = !card || card.length < 13
+    ? "Enter a valid card number"
+    : expiry.length < 5
+    ? "Enter expiry (MM/YY)"
+    : cvc.length < 3
+    ? "CVC is required (3-4 digits)"
+    : !country || country === "Select Country"
+    ? "Select a country"
+    : ""
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-white">
@@ -457,17 +483,27 @@ export default function Dashboard() {
           </ul>
           <div className="mt-8">
             <h2 className="text-sm font-semibold mb-2">Recharge Credits</h2>
-            <input placeholder="Enter credits" value={rechargeAmount}
+            <input
+              placeholder="Enter credits"
+              value={rechargeAmount}
               onChange={(e) => setRechargeAmount(e.target.value)}
-              className="w-full p-2 mb-2 bg-gray-700 rounded" />
+              className="w-full p-2 mb-2 bg-gray-700 rounded"
+            />
             <button
-              onClick={() => { if (!rechargeAmount) { alert("Enter amount"); return } alert("Recharge request sent!"); setRechargeAmount("") }}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black p-2 rounded font-semibold">
+              onClick={() => {
+                if (!rechargeAmount) { alert("Enter amount"); return }
+                alert("Recharge request sent!")
+                setRechargeAmount("")
+              }}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black p-2 rounded font-semibold"
+            >
               Request Recharge
             </button>
           </div>
         </div>
-        <button onClick={logout} className="bg-red-600 hover:bg-red-700 p-3 rounded font-semibold w-full">Logout</button>
+        <button onClick={logout} className="bg-red-600 hover:bg-red-700 p-3 rounded font-semibold w-full">
+          Logout
+        </button>
       </div>
 
       {/* MAIN */}
@@ -480,7 +516,9 @@ export default function Dashboard() {
             <div className={`px-4 py-2 rounded font-bold ${credits > 0 ? "bg-gray-800 text-green-400" : "bg-red-900 text-red-400"}`}>
               Credits: {credits}
             </div>
-            <img src="https://i.pravatar.cc/40" className="w-10 h-10 rounded-full" />
+            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-sm">
+              {currentUser?.username?.[0]?.toUpperCase() || "U"}
+            </div>
           </div>
         </div>
 
@@ -489,19 +527,50 @@ export default function Dashboard() {
           {/* SINGLE CARD CHECKER */}
           <div className="bg-gray-800 p-6 rounded-lg">
             <h2 className="text-lg font-semibold mb-4">Card Checker</h2>
-            <input type="text" placeholder="Card Number" value={card} maxLength={19}
+
+            <input
+              type="text"
+              placeholder="Card Number"
+              value={card}
+              maxLength={19}
               className="w-full p-3 rounded bg-gray-700 mb-4 outline-none tracking-widest font-mono"
-              onChange={(e) => { setResult(null); setCard(e.target.value.replace(/\D/g, "")) }} />
+              onChange={(e) => { setResult(null); setCard(e.target.value.replace(/\D/g, "")) }}
+            />
+
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <input type="text" placeholder="MM/YY" value={expiry} maxLength={5}
+              <input
+                type="text"
+                placeholder="MM/YY"
+                value={expiry}
+                maxLength={5}
                 className="p-3 rounded bg-gray-700 outline-none"
-                onChange={(e) => setExpiry(formatExpiry(e.target.value))} />
-              <input type="text" placeholder="CVC" value={cvc} maxLength={4}
-                className="p-3 rounded bg-gray-700 outline-none"
-                onChange={(e) => setCvc(e.target.value.replace(/\D/g, ""))} />
+                onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+              />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="CVC *"
+                  value={cvc}
+                  maxLength={4}
+                  className={`w-full p-3 rounded outline-none transition-colors ${
+                    cvc.length >= 3 ? "bg-gray-700" : "bg-gray-700 border border-red-500/50"
+                  }`}
+                  onChange={(e) => setCvc(e.target.value.replace(/\D/g, ""))}
+                />
+                {cvc.length === 0 && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400 text-xs font-semibold pointer-events-none">
+                    required
+                  </span>
+                )}
+              </div>
             </div>
-            <select className="w-full p-3 rounded bg-gray-700 mb-4" onChange={(e) => setCountry(e.target.value)}>
-              <option>Select Country</option>
+
+            <select
+              className="w-full p-3 rounded bg-gray-700 mb-4"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+            >
+              <option value="">Select Country</option>
               <option>United States</option>
               <option>United Kingdom</option>
               <option>Canada</option>
@@ -515,10 +584,34 @@ export default function Dashboard() {
               <option>Japan</option>
               <option>Singapore</option>
             </select>
-            <button onClick={handleCheck} disabled={checking}
-              className="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold disabled:opacity-50">
-              {checking ? "⏳ Processing..." : "Check Card"}
-            </button>
+
+            {/* ── CVC hint shown when card & expiry filled but CVC missing ── */}
+            {card.length >= 13 && expiry.length === 5 && cvc.length < 3 && (
+              <p className="text-red-400 text-xs mb-3 flex items-center gap-1">
+                ⚠️ Please enter CVC (3-4 digits) to enable card check
+              </p>
+            )}
+
+            {/* ── THE FIXED BUTTON ── */}
+            <div title={!isFormValid ? disabledReason : ""}>
+              <button
+                onClick={handleCheck}
+                disabled={!isFormValid || checking}
+                className={`w-full p-3 rounded font-semibold transition-all duration-200 ${
+                  isFormValid && !checking
+                    ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                    : "bg-gray-600 cursor-not-allowed opacity-50"
+                }`}
+              >
+                {checking ? "⏳ Processing..." : "Check Card"}
+              </button>
+            </div>
+
+            {!isFormValid && (
+              <p className="text-gray-500 text-xs text-center mt-2">
+                {disabledReason}
+              </p>
+            )}
 
             {result && result.status === "INVALID" && (
               <div className="mt-6 p-4 rounded-lg border border-gray-500 bg-gray-700/30">
@@ -529,12 +622,8 @@ export default function Dashboard() {
                 <div className="bg-gray-600/30 text-xs font-mono px-3 py-2 rounded mb-3 text-gray-300">
                   RC: {result.responseCode} — {result.responseMessage}
                 </div>
-                <p className="text-gray-400 text-sm text-center py-2">
-                  This card could not be validated.
-                </p>
-                <p className="text-gray-500 text-xs text-center">
-                  No credits were deducted.
-                </p>
+                <p className="text-gray-400 text-sm text-center py-2">This card could not be validated.</p>
+                <p className="text-gray-500 text-xs text-center">No credits were deducted.</p>
               </div>
             )}
 
@@ -614,15 +703,21 @@ export default function Dashboard() {
               )}
             </div>
             <p className="text-xs text-gray-400 mb-3">
-              Format: <span className="text-blue-400 font-mono">CardNumber|MM/YY|CVV</span> — one per line
+              Format: <span className="text-blue-400 font-mono">CardNumber|MM/YY|CVV</span> — CVV required, one per line
             </p>
-            <textarea value={bulkInput} onChange={(e) => setBulkInput(e.target.value)}
-              placeholder={`4722629090933487|01/30|157\n4487123456789012|06/27|321\n5282987654321098|09/28|456`}
+            <textarea
+              value={bulkInput}
+              onChange={(e) => setBulkInput(e.target.value)}
+              placeholder={`4111111111111111|01/30|123\n5200000000000007|06/27|321\n4532015112830366|09/28|456`}
               className="w-full p-3 bg-gray-700 rounded text-sm font-mono resize-none outline-none mb-3"
-              rows={5} />
+              rows={5}
+            />
             <div className="flex gap-2 mb-3">
-              <button onClick={handleBulkCheck} disabled={bulkChecking}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold disabled:opacity-50">
+              <button
+                onClick={handleBulkCheck}
+                disabled={bulkChecking}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold disabled:opacity-50"
+              >
                 {bulkChecking
                   ? `⏳ ${bulkProgress}/${bulkInput.trim().split("\n").filter(l => l.trim()).length}...`
                   : "🔍 Bulk Check"}
@@ -631,8 +726,10 @@ export default function Dashboard() {
             </div>
             {bulkChecking && (
               <div className="w-full bg-gray-700 rounded-full h-2 mb-3">
-                <div className="bg-blue-500 h-2 rounded-full transition-all"
-                  style={{ width: `${(bulkProgress / Math.max(1, bulkInput.trim().split("\n").filter(l => l.trim()).length)) * 100}%` }} />
+                <div
+                  className="bg-blue-500 h-2 rounded-full transition-all"
+                  style={{ width: `${(bulkProgress / Math.max(1, bulkInput.trim().split("\n").filter(l => l.trim()).length)) * 100}%` }}
+                />
               </div>
             )}
             <div className="flex-1 overflow-y-auto space-y-2 max-h-96">
@@ -687,11 +784,15 @@ export default function Dashboard() {
         <div className="mt-8 bg-gray-800 p-6 rounded-lg">
           <h2 className="text-lg font-semibold mb-4">BIN Validator</h2>
           <div className="flex gap-3 mb-4">
-            <input type="text" placeholder="Enter BIN (4-6 digits)" value={bin} maxLength={6}
+            <input
+              type="text"
+              placeholder="Enter BIN (4-6 digits)"
+              value={bin}
+              maxLength={6}
               className="flex-1 p-3 rounded bg-gray-700 outline-none font-mono"
-              onChange={(e) => { setBinResult(null); setBin(e.target.value.replace(/\D/g, "")) }} />
-            <button onClick={handleBinCheck}
-              className="bg-green-600 hover:bg-green-700 px-6 rounded font-semibold">
+              onChange={(e) => { setBinResult(null); setBin(e.target.value.replace(/\D/g, "")) }}
+            />
+            <button onClick={handleBinCheck} className="bg-green-600 hover:bg-green-700 px-6 rounded font-semibold">
               Check BIN
             </button>
           </div>
@@ -733,8 +834,12 @@ export default function Dashboard() {
               <p>10000 Credits = $1000</p>
               <p>50000 Credits = $5000</p>
             </div>
-            <button onClick={() => setShowPlans(false)}
-              className="mt-6 w-full bg-red-600 hover:bg-red-700 p-3 rounded font-semibold">Close</button>
+            <button
+              onClick={() => setShowPlans(false)}
+              className="mt-6 w-full bg-red-600 hover:bg-red-700 p-3 rounded font-semibold"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
